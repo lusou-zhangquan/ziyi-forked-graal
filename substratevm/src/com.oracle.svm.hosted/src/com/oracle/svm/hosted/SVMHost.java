@@ -31,7 +31,6 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -42,7 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
 
@@ -66,12 +64,10 @@ import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.c.function.RelocatedPointer;
-import org.graalvm.nativeimage.hosted.Feature.DuringAnalysisAccess;
 import org.graalvm.util.GuardedAnnotationAccess;
 
 import com.oracle.graal.pointsto.PointsToAnalysis;
-import com.oracle.graal.pointsto.api.HostVM;
-import com.oracle.graal.pointsto.api.PointstoOptions;
+import com.oracle.graal.pointsto.api.SharedHostVM;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
 import com.oracle.graal.pointsto.infrastructure.OriginalClassProvider;
 import com.oracle.graal.pointsto.meta.AnalysisField;
@@ -118,19 +114,16 @@ import jdk.vm.ci.meta.ResolvedJavaField;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 import jdk.vm.ci.meta.ResolvedJavaType;
 
-public class SVMHost implements HostVM {
+public class SVMHost extends SharedHostVM {
     private final ConcurrentHashMap<AnalysisType, DynamicHub> typeToHub = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<DynamicHub, AnalysisType> hubToType = new ConcurrentHashMap<>();
 
     private final Map<String, EnumSet<AnalysisType.UsageKind>> forbiddenTypes;
     private final Platform platform;
-    private final OptionValues options;
-    private final ForkJoinPool executor;
-    private final ClassLoader classLoader;
+
     private final ClassInitializationSupport classInitializationSupport;
     private final HostedStringDeduplication stringTable;
     private final UnsafeAutomaticSubstitutionProcessor automaticSubstitutions;
-    private final List<BiConsumer<DuringAnalysisAccess, Class<?>>> classReachabilityListeners;
 
     /**
      * Optionally keep the Graal graphs alive during analysis. This increases the memory footprint
@@ -151,12 +144,9 @@ public class SVMHost implements HostVM {
 
     public SVMHost(OptionValues options, ForkJoinPool executor, ClassLoader classLoader, ClassInitializationSupport classInitializationSupport,
                     UnsafeAutomaticSubstitutionProcessor automaticSubstitutions, Platform platform) {
-        this.options = options;
-        this.executor = executor;
-        this.classLoader = classLoader;
+        super(options, classLoader, executor);
         this.classInitializationSupport = classInitializationSupport;
         this.stringTable = HostedStringDeduplication.singleton();
-        this.classReachabilityListeners = new ArrayList<>();
         this.forbiddenTypes = setupForbiddenTypes(options);
         this.automaticSubstitutions = automaticSubstitutions;
         this.platform = platform;
@@ -207,28 +197,8 @@ public class SVMHost implements HostVM {
     }
 
     @Override
-    public OptionValues options() {
-        return options;
-    }
-
-    @Override
-    public ForkJoinPool executor() {
-        return executor;
-    }
-
-    @Override
     public Instance createGraphBuilderPhase(HostedProviders providers, GraphBuilderConfiguration graphBuilderConfig, OptimisticOptimizations optimisticOpts, IntrinsicContext initialIntrinsicContext) {
         return new AnalysisGraphBuilderPhase(providers, graphBuilderConfig, optimisticOpts, initialIntrinsicContext, providers.getWordTypes());
-    }
-
-    @Override
-    public String inspectServerContentPath() {
-        return PointstoOptions.InspectServerContentPath.getValue(options);
-    }
-
-    @Override
-    public void warn(String message) {
-        System.err.println("warning: " + message);
     }
 
     @Override
@@ -242,12 +212,8 @@ public class SVMHost implements HostVM {
     }
 
     @Override
-    public void clearInThread() {
-    }
-
-    @Override
     public void installInThread(Object vmConfig) {
-        Thread.currentThread().setContextClassLoader(classLoader);
+        super.installInThread(vmConfig);
         assert vmConfig == ImageSingletonsSupportImpl.HostedManagement.get();
     }
 
@@ -300,7 +266,7 @@ public class SVMHost implements HostVM {
         }
 
         /* Compute the automatic substitutions. */
-        automaticSubstitutions.computeSubstitutions(this, GraalAccess.getOriginalProviders().getMetaAccess().lookupJavaType(analysisType.getJavaClass()), options);
+        automaticSubstitutions.computeSubstitutions(this, GraalAccess.getOriginalProviders().getMetaAccess().lookupJavaType(analysisType.getJavaClass()), super.options());
     }
 
     @Override
@@ -475,22 +441,6 @@ public class SVMHost implements HostVM {
         return field.getAnnotation(UnknownPrimitiveField.class) != null;
     }
 
-    public void registerClassReachabilityListener(BiConsumer<DuringAnalysisAccess, Class<?>> listener) {
-        classReachabilityListeners.add(listener);
-    }
-
-    public void notifyClassReachabilityListener(AnalysisUniverse universe, DuringAnalysisAccess access) {
-        for (AnalysisType type : universe.getTypes()) {
-            if (type.isReachable() && !type.getReachabilityListenerNotified()) {
-                type.setReachabilityListenerNotified(true);
-
-                for (BiConsumer<DuringAnalysisAccess, Class<?>> listener : classReachabilityListeners) {
-                    listener.accept(access, type.getJavaClass());
-                }
-            }
-        }
-    }
-
     public ClassInitializationSupport getClassInitializationSupport() {
         return classInitializationSupport;
     }
@@ -545,12 +495,6 @@ public class SVMHost implements HostVM {
             message += "If the offending code is in JDK code please file a bug with GraalVM. ";
             throw new UnsupportedFeatureException(message);
         }
-    }
-
-    private final List<BiConsumer<AnalysisMethod, StructuredGraph>> methodAfterParsingHooks = new CopyOnWriteArrayList<>();
-
-    public void addMethodAfterParsingHook(BiConsumer<AnalysisMethod, StructuredGraph> methodAfterParsingHook) {
-        methodAfterParsingHooks.add(methodAfterParsingHook);
     }
 
     @Override
