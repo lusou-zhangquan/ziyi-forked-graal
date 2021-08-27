@@ -399,6 +399,14 @@ suite = {
             "dependencies": [
                 "com.oracle.svm.common",
             ],
+            "requires" : [
+                "jdk.unsupported" # sun.misc.Unsafe
+            ],
+            "requiresConcealed" : {
+                "java.base" : [
+                    "jdk.internal.misc"
+                ]
+            },
             "checkstyle": "com.oracle.svm.core",
             "javaCompliance": "11+",
             "annotationProcessors": [
