@@ -1471,6 +1471,7 @@ suite = {
                 "com.oracle.graal.pointsto.infrastructure",
                 "com.oracle.graal.pointsto.flow.context.object",
               ],
+              "requires" : ["jdk.unsupported"],
               "requiresConcealed" : {
                 "jdk.internal.vm.ci" : [
                   "jdk.vm.ci.meta",

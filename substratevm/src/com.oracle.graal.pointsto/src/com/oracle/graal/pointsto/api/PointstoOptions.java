@@ -24,11 +24,11 @@
  */
 package com.oracle.graal.pointsto.api;
 
-import static jdk.vm.ci.common.JVMCIError.shouldNotReachHere;
-
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.compiler.options.Option;
 import org.graalvm.compiler.options.OptionKey;
+
+import static jdk.vm.ci.common.JVMCIError.shouldNotReachHere;
 
 public class PointstoOptions {
 
@@ -219,4 +219,7 @@ public class PointstoOptions {
             return value;
         }
     }
+
+    @Option(help = "Specify the analysis entry point class. It should be a main Class.")//
+    public static final OptionKey<String> AnalysisEntryClass = new OptionKey<>(null);
 }
