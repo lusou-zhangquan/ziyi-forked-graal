@@ -30,6 +30,8 @@ import com.oracle.graal.pointsto.api.PointstoOptions;
 import com.oracle.graal.pointsto.infrastructure.SubstitutionProcessor;
 import com.oracle.graal.pointsto.meta.AnalysisMetaAccess;
 import com.oracle.graal.pointsto.meta.AnalysisMetaAccessExtensionProvider;
+import com.oracle.graal.pointsto.meta.AnalysisMethod;
+import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.graal.pointsto.meta.PointstoConstantFieldProvider;
@@ -51,10 +53,12 @@ import jdk.vm.ci.hotspot.HotSpotJVMCIRuntime;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.MetaAccessProvider;
 import jdk.vm.ci.runtime.JVMCI;
+
 import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
 import org.graalvm.compiler.api.runtime.GraalJVMCICompiler;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.debug.Indent;
+import org.graalvm.compiler.debug.MethodFilter;
 import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderConfiguration;
 import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins;
 import org.graalvm.compiler.options.OptionValues;
@@ -72,6 +76,12 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
@@ -100,7 +110,9 @@ public final class PointsToAnalyzer {
     private ClassLoader analysisClassLoader;
     private final DebugContext debugContext;
     private AnalysisFeatureImpl.OnAnalysisExitAccessImpl onAnalysisExitAccess;
-    private String analysisTargetMainClass;
+    private String analysisName;
+    private boolean entrypointsAreSet;
+    private boolean mainEntryIsSet;
 
     @SuppressWarnings("try")
     private PointsToAnalyzer(OptionValues options) {
@@ -143,7 +155,7 @@ public final class PointsToAnalyzer {
         HostedProviders aProviders = new HostedProviders(aMetaAccess, null, aConstantReflection, aConstantFieldProvider,
                 providers.getForeignCalls(), providers.getLowerer(), providers.getReplacements(), aStampProvider, snippetReflection, aWordTypes,
                 providers.getPlatformConfigurationProvider(), aMetaAccessExtensionProvider, providers.getLoopsDataProvider());
-        analysisTargetMainClass = PointstoOptions.AnalysisEntryClass.getValue(options);
+        analysisName = getAnalysisName(options);
         bigbang = new StandalonePointsToAnalysis(options, aUniverse, aProviders, hotSpotHost, executor, () -> {
             /* do nothing */
         });
@@ -173,6 +185,25 @@ public final class PointsToAnalyzer {
             NoClassInitializationPlugin classInitializationPlugin = new NoClassInitializationPlugin();
             plugins.setClassInitializationPlugin(classInitializationPlugin);
             aProviders.setGraphBuilderPlugins(plugins);
+        }
+    }
+
+    private String getAnalysisName(OptionValues options) {
+        String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
+        String analysisEntryClassOptionName = PointstoOptions.AnalysisEntryClass.getName();
+        String entryPointsFile = PointstoOptions.AnalysisEntryPointFile.getValue(options);
+        String entryPointsFileOptionName = PointstoOptions.AnalysisEntryPointFile.getName();
+        mainEntryIsSet = entryClass != null && entryClass.length() != 0;
+        entrypointsAreSet = entryPointsFile != null && entryPointsFile.length() != 0;
+        if (!mainEntryIsSet && !entrypointsAreSet) {
+            AnalysisError.shouldNotReachHere("No analysis entry are specified. Must use -H:" + analysisEntryClassOptionName
+                    + " or -H:" + entryPointsFileOptionName + " to specify the analysis entries.");
+        }
+        if (mainEntryIsSet) {
+            return entryClass;
+        } else {
+            Path entryFilePath = Paths.get(entryPointsFile);
+            return entryFilePath.getFileName().toString();
         }
     }
 
@@ -222,7 +253,7 @@ public final class PointsToAnalyzer {
 
     @SuppressWarnings("try")
     public int run() {
-        registerEntryMethod();
+        registerEntryMethods();
         registerFeatures();
         int exitCode = 0;
         Feature.BeforeAnalysisAccess beforeAnalysisAccess = new AnalysisFeatureImpl.BeforeAnalysisAccessImpl(analysisFeatureManager, analysisClassLoader, bigbang, debugContext);
@@ -269,20 +300,93 @@ public final class PointsToAnalyzer {
         analysisFeatureManager.registerFeature("com.oracle.graal.pointsto.standalone.features.DashboardDumpDelegate$Feature");
     }
 
-    private void registerEntryMethod() {
-        String optionName = PointstoOptions.AnalysisEntryClass.getName();
-        if (analysisTargetMainClass == null) {
-            throw new RuntimeException("No analysis entry main class is specified. Must use -H:" + optionName + "= option to specify the analysis entry main class.");
-        } else {
+    /**
+     * Register analysis entry points.
+     */
+    public void registerEntryMethods() {
+        OptionValues options = bigbang.getOptions();
+        if (mainEntryIsSet) {
+            String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
+            String optionName = PointstoOptions.AnalysisEntryClass.getName();
             try {
-                Class<?> analysisMainClass = Class.forName(analysisTargetMainClass, false, analysisClassLoader);
+                Class<?> analysisMainClass = Class.forName(entryClass, false, analysisClassLoader);
                 Method main = analysisMainClass.getDeclaredMethod("main", String[].class);
                 bigbang.addRootMethod(main);
             } catch (ClassNotFoundException e) {
-                throw new RuntimeException("Can't find the specified analysis main class " + analysisTargetMainClass, e);
+                throw new RuntimeException("Can't find the specified analysis main class " + entryClass, e);
             } catch (NoSuchMethodException e) {
-                throw new RuntimeException("Can't find the main method in the analysis main class " + analysisTargetMainClass + " setting with -H:" + optionName, e);
+                AnalysisError.shouldNotReachHere("Can't find the main method in the analysis main class " + entryClass + " setting with -H:" + optionName, e);
             }
+        }
+
+        if (entrypointsAreSet) {
+            String entryPointsFile = PointstoOptions.AnalysisEntryPointFile.getValue(options);
+            List<String> entrypointList = new ArrayList<>();
+            Path entryFilePath = Paths.get(entryPointsFile);
+            File entryFile = entryFilePath.toFile();
+            try (FileInputStream fis = new FileInputStream(entryFile);
+                 BufferedReader br = new BufferedReader(new InputStreamReader(fis));) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    entrypointList.add(line);
+                }
+            } catch (IOException e) {
+                AnalysisError.shouldNotReachHere(e);
+            }
+
+            for (String entryPoint : entrypointList) {
+                if (entryPoint.length() == 0) {
+                    continue;
+                }
+                registerEntryPointMethod(entryPoint, bigbang, analysisClassLoader);
+            }
+        }
+    }
+
+    /**
+     * Register the specify method as root method. The method name is matched by {@link org.graalvm.compiler.debug.MethodFilter},
+     * so the method name should follow the format defined by {@link MethodFilter}.
+     *
+     * @param method  the full name of method that follows {@link MethodFilter}'s format.
+     * @param bigbang
+     * @param classLoader which classloader to look for the method's declaring class
+     */
+    public static void registerEntryPointMethod(String method, BigBang bigbang, ClassLoader classLoader) {
+        try {
+            int pos = method.indexOf('(');
+            int dotAfterClassNamePos;
+            if(pos == -1){
+                dotAfterClassNamePos = method.lastIndexOf('.');
+            }else{
+                dotAfterClassNamePos = method.lastIndexOf('.', pos);
+            }
+            if (dotAfterClassNamePos == -1) {
+                AnalysisError.shouldNotReachHere("The the given method's name " + method + " doesn't contain the declaring class name.");
+            }
+            String className = method.substring(0, dotAfterClassNamePos);
+            Class<?> c = Class.forName(className, false, classLoader);
+            AnalysisType t = bigbang.getMetaAccess().lookupJavaType(c);
+
+            List<AnalysisMethod> methodCandidates = new ArrayList<>();
+            for (AnalysisMethod m : t.getDeclaredMethods()) {
+                methodCandidates.add(m);
+            }
+            methodCandidates.add(t.getClassInitializer());
+            AnalysisMethod found = null;
+            MethodFilter filter = MethodFilter.parse(method);
+            for (AnalysisMethod methodCandidate : methodCandidates) {
+                if (filter.matches(methodCandidate)) {
+                    found = methodCandidate;
+                    break;
+                }
+            }
+            if (found != null) {
+                bigbang.addRootMethod(found);
+            } else {
+                System.out.println("Warning: The method " + method + " doesn't exist. It shall not be added as analysis root method.");
+            }
+        } catch (ClassNotFoundException e) {
+            AnalysisError.shouldNotReachHere(e);
         }
     }
 
