@@ -40,11 +40,11 @@ import com.oracle.graal.pointsto.meta.PointstoConstantFieldProvider;
 import com.oracle.graal.pointsto.meta.PointstoConstantReflectionProvider;
 import com.oracle.graal.pointsto.meta.PointstoStampProvider;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
-import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
-import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
-import com.oracle.graal.pointsto.standalone.features.PointstoClassInitializationFeature;
-import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
 import com.oracle.graal.pointsto.standalone.HotSpotHost;
+import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
+import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
+import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
+import com.oracle.graal.pointsto.standalone.features.PointstoClassInitializationFeature;
 import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.graal.pointsto.util.PointsToOptionParser;
 import com.oracle.graal.pointsto.util.Timer;
@@ -72,10 +72,11 @@ import org.graalvm.nativeimage.hosted.Feature;
 
 import java.io.File;
 import java.lang.reflect.Method;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
@@ -104,7 +105,9 @@ public final class PointsToAnalyzer {
     private ClassLoader analysisClassLoader;
     private final DebugContext debugContext;
     private AnalysisFeatureImpl.OnAnalysisExitAccessImpl onAnalysisExitAccess;
-    private String analysisTargetMainClass;
+    private String analysisName;
+    private boolean entrypointsAreSet;
+    private boolean mainEntryIsSet;
 
     @SuppressWarnings("try")
     private PointsToAnalyzer(OptionValues options) {
@@ -148,10 +151,10 @@ public final class PointsToAnalyzer {
         HostedProviders aProviders = new HostedProviders(aMetaAccess, null, aConstantReflection, aConstantFieldProvider,
                         providers.getForeignCalls(), providers.getLowerer(), providers.getReplacements(), aStampProvider, snippetReflection, aWordTypes,
                         providers.getPlatformConfigurationProvider(), aMetaAccessExtensionProvider, providers.getLoopsDataProvider());
-        analysisTargetMainClass = PointstoOptions.AnalysisEntryClass.getValue(options);
+        analysisName = getAnalysisName(options);
         bigbang = new StandalonePointsToAnalysis(options, aUniverse, aProviders, hotSpotHost, executor, () -> {
             /* do nothing */
-        }, new TimerCollection(analysisTargetMainClass));
+        }, new TimerCollection(analysisName));
         aUniverse.setBigBang(bigbang);
         ImageHeap heap = new ImageHeap();
         StandaloneImageHeapScanner heapScanner = new StandaloneImageHeapScanner(heap, aMetaAccess,
@@ -198,6 +201,25 @@ public final class PointsToAnalyzer {
         }
     }
 
+    private String getAnalysisName(OptionValues options) {
+        String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
+        String analysisEntryClassOptionName = PointstoOptions.AnalysisEntryClass.getName();
+        String entryPointsFile = PointstoOptions.AnalysisEntryPointFile.getValue(options);
+        String entryPointsFileOptionName = PointstoOptions.AnalysisEntryPointFile.getName();
+        mainEntryIsSet = entryClass != null && entryClass.length() != 0;
+        entrypointsAreSet = entryPointsFile != null && entryPointsFile.length() != 0;
+        if (!mainEntryIsSet && !entrypointsAreSet) {
+            AnalysisError.shouldNotReachHere(
+                            "No analysis entry are specified. Must use -H:" + analysisEntryClassOptionName + " or -H:" + entryPointsFileOptionName + " to specify the analysis entries.");
+        }
+        if (mainEntryIsSet) {
+            return entryClass;
+        } else {
+            Path entryFilePath = Paths.get(entryPointsFile);
+            return entryFilePath.getFileName().toString();
+        }
+    }
+
     private static int getWordSize() {
         int wordSize;
         String archModel = System.getProperty("sun.arch.data.model");
@@ -231,7 +253,7 @@ public final class PointsToAnalyzer {
 
     @SuppressWarnings("try")
     public int run() {
-        registerEntryMethod();
+        registerEntryMethods();
         registerFeatures();
         int exitCode = 0;
         Feature.BeforeAnalysisAccess beforeAnalysisAccess = new AnalysisFeatureImpl.BeforeAnalysisAccessImpl(analysisFeatureManager, analysisClassLoader, bigbang, debugContext);
@@ -278,21 +300,29 @@ public final class PointsToAnalyzer {
         analysisFeatureManager.registerFeature("com.oracle.graal.pointsto.standalone.features.DashboardDumpDelegate$Feature");
     }
 
-    private void registerEntryMethod() {
-        String optionName = PointstoOptions.AnalysisEntryClass.getName();
-        if (analysisTargetMainClass == null) {
-            throw new RuntimeException("No analysis entry main class is specified. Must use -H:" + optionName + "= option to specify the analysis entry main class.");
-        } else {
+    /**
+     * Register analysis entry points.
+     */
+    public void registerEntryMethods() {
+        OptionValues options = bigbang.getOptions();
+        if (mainEntryIsSet) {
+            String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
+            String optionName = PointstoOptions.AnalysisEntryClass.getName();
             try {
-                Class<?> analysisMainClass = Class.forName(analysisTargetMainClass, false, analysisClassLoader);
+                Class<?> analysisMainClass = Class.forName(entryClass, false, analysisClassLoader);
                 Method main = analysisMainClass.getDeclaredMethod("main", String[].class);
                 // main method is static, whatever the invokeSpecial is it is ignored.
                 bigbang.addRootMethod(main, true);
             } catch (ClassNotFoundException e) {
-                throw new RuntimeException("Can't find the specified analysis main class " + analysisTargetMainClass, e);
+                throw new RuntimeException("Can't find the specified analysis main class " + entryClass, e);
             } catch (NoSuchMethodException e) {
-                throw new RuntimeException("Can't find the main method in the analysis main class " + analysisTargetMainClass + " setting with -H:" + optionName, e);
+                AnalysisError.shouldNotReachHere("Can't find the main method in the analysis main class " + entryClass + " setting with -H:" + optionName, e);
             }
+        }
+
+        if (entrypointsAreSet) {
+            String entryPointsFile = PointstoOptions.AnalysisEntryPointFile.getValue(options);
+            MethodConfigReader.readMethodFromFile(entryPointsFile, bigbang, analysisClassLoader, m-> bigbang.addRootMethod(m, true));
         }
     }
 
