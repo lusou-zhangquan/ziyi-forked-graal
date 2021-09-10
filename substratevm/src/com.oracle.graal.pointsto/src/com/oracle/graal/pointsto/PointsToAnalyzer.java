@@ -38,6 +38,7 @@ import com.oracle.graal.pointsto.meta.PointstoStampProvider;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
 import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
 import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
+import com.oracle.graal.pointsto.standalone.features.PointstoClassInitializationFeature;
 import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
 import com.oracle.graal.pointsto.standalone.HotSpotHost;
 import com.oracle.graal.pointsto.util.AnalysisError;
@@ -262,6 +263,7 @@ public final class PointsToAnalyzer {
     @SuppressWarnings("unchecked")
     private void registerFeatures() {
         analysisFeatureManager.registerFeaturesFromOptions();
+        analysisFeatureManager.registerFeature(PointstoClassInitializationFeature.class);
     }
 
     private void registerEntryMethod() {
