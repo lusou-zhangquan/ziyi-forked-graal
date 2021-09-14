@@ -429,6 +429,33 @@ suite = {
             "javaCompliance": "8+",
             "spotbugs": "false",
         },
+        "com.oracle.graal.pointsto.test.jdk11": {
+            "subDir": "src",
+            "sourceDirs": ["src"],
+            "dependencies": [
+                "com.oracle.graal.pointsto.test",
+                "mx:JUNIT_TOOL",
+                "sdk:GRAAL_SDK",
+                "POINTSTO",
+            ],
+            "requires": [
+                "jdk.unsupported",
+                "java.compiler",
+            ],
+            "requiresConcealed": {
+                "jdk.internal.vm.ci": [
+                    "jdk.vm.ci.meta",
+                ]
+            },
+            "checkstyle": "com.oracle.graal.pointsto",
+            "workingSets": "SVM",
+            "annotationProcessors": [
+                "compiler:GRAAL_PROCESSOR",
+            ],
+            "javaCompliance": "11+",
+            "spotbugs": "false",
+	    "testProject": True
+        },
         "com.oracle.svm.hosted": {
             "subDir": "src",
             "sourceDirs": ["src"],
@@ -1462,6 +1489,7 @@ suite = {
                 "exports" : [
                     "com.oracle.svm.util",
                     "com.oracle.svm.common.option",
+                    "com.oracle.svm.common.phases",
                 ],
             }
         },
@@ -1532,6 +1560,7 @@ suite = {
             "subDir": "src",
             "relpath" : True,
             "dependencies" : [
+                "com.oracle.graal.pointsto.test.jdk11",
                 "com.oracle.svm.test.jdk11",
             ],
             "distDependencies": [
