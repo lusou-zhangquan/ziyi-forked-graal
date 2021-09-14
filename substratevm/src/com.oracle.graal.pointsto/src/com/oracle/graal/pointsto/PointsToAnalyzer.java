@@ -39,6 +39,7 @@ import com.oracle.graal.pointsto.meta.PointsToAnalysisFactory;
 import com.oracle.graal.pointsto.meta.PointstoConstantFieldProvider;
 import com.oracle.graal.pointsto.meta.PointstoConstantReflectionProvider;
 import com.oracle.graal.pointsto.meta.PointstoStampProvider;
+import com.oracle.graal.pointsto.phases.PointsToMethodHandlePlugin;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
 import com.oracle.graal.pointsto.reports.AnalysisReporter;
 import com.oracle.graal.pointsto.standalone.HotSpotHost;
@@ -213,6 +214,7 @@ public final class PointsToAnalyzer {
 
             GraphBuilderConfiguration.Plugins plugins = new GraphBuilderConfiguration.Plugins(new InvocationPlugins());
             NoClassInitializationPlugin classInitializationPlugin = new NoClassInitializationPlugin(PointstoOptions.PrintUnresolvedElementWarning.getValue(options));
+            plugins.appendNodePlugin(new PointsToMethodHandlePlugin(aProviders, aUniverse, new Providers(providers), classInitializationPlugin, ex -> AnalysisError.shouldNotReachHere(ex)));
             plugins.setClassInitializationPlugin(classInitializationPlugin);
             aProviders.setGraphBuilderPlugins(plugins);
             registerInvocationPlugins(providers.getSnippetReflection(), plugins.getInvocationPlugins(), providers.getReplacements(),

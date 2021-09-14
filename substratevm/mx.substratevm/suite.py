@@ -1493,6 +1493,7 @@ suite = {
                 "exports" : [
                     "com.oracle.svm.util",
                     "com.oracle.svm.common.option",
+                    "com.oracle.svm.common.phases",
                 ],
             }
         },
