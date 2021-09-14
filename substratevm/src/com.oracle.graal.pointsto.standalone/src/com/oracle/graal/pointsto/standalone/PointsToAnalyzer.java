@@ -64,6 +64,7 @@ import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.graal.pointsto.meta.PointsToAnalysisFactory;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
+import com.oracle.graal.pointsto.phases.PointsToMethodHandlePlugin;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureImpl;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureManager;
 import com.oracle.graal.pointsto.reports.AnalysisReporter;
@@ -213,6 +214,7 @@ public final class PointsToAnalyzer {
             GraphBuilderConfiguration.Plugins plugins = new GraphBuilderConfiguration.Plugins(new InvocationPlugins());
             NoClassInitializationPlugin classInitializationPlugin = new NoClassInitializationPlugin(StandaloneOptions.PrintUnresolvedElementWarning.getValue(options));
             plugins.setClassInitializationPlugin(classInitializationPlugin);
+            plugins.appendNodePlugin(new PointsToMethodHandlePlugin(aProviders, aUniverse, new Providers(originalProviders), classInitializationPlugin, ex -> AnalysisError.shouldNotReachHere(ex)));
             aProviders.setGraphBuilderPlugins(plugins);
             registerInvocationPlugins(originalProviders.getSnippetReflection(), plugins.getInvocationPlugins(), originalProviders.getReplacements(),
                             false, true, false, originalProviders.getLowerer());

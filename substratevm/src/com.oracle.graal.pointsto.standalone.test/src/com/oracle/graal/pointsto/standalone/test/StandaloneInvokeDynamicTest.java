@@ -23,21 +23,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.graal.phases;
 
-import com.oracle.svm.common.phases.AbstractTrustedInterfaceTypePlugin;
-import com.oracle.svm.core.meta.SharedType;
-import jdk.vm.ci.meta.JavaKind;
-import jdk.vm.ci.meta.JavaType;
+package com.oracle.graal.pointsto.standalone.test;
 
-public final class TrustedInterfaceTypePlugin extends AbstractTrustedInterfaceTypePlugin {
+import org.junit.Test;
 
-    @Override
-    protected SharedType castType(JavaType declaredType) {
-        if (declaredType.getJavaKind() == JavaKind.Object && declaredType instanceof SharedType) {
-            return (SharedType) declaredType;
-        } else {
-            return null;
-        }
+/**
+ * This test verifies whether the invokeDynamic in handled by
+ * {@link com.oracle.graal.pointsto.phases.PointsToMethodHandlePlugin}. This test class must be
+ * compiled with VM specific 9+, so that the String concat operation will be compiled into
+ * invokeDynamic.
+ */
+public class StandaloneInvokeDynamicTest {
+
+    @Test
+    public void test() throws ReflectiveOperationException {
+        PointstoAnalyzerTester tester = new PointstoAnalyzerTester(StandaloneInvokeDynamicCase.class);
+        tester.setAnalysisArguments(tester.getTestClassName(),
+                        "-H:AnalysisTargetAppCP=" + tester.getTestClassJar());
+
+        Class<?> stringConcatHelperClass = Class.forName("java.lang.StringConcatHelper");
+        tester.setExpectedReachableMethods(stringConcatHelperClass.getDeclaredMethod("mixCoder", byte.class, String.class),
+                        stringConcatHelperClass.getDeclaredMethod("mixLen", int.class, String.class),
+                        stringConcatHelperClass.getDeclaredMethod("checkOverflow", int.class));
+        tester.runAnalysisAndAssert();
     }
 }
