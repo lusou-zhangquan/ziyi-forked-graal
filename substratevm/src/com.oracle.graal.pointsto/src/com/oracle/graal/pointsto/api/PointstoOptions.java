@@ -226,4 +226,7 @@ public class PointstoOptions {
 
     @Option(help = "Specify the analysis entry point class. It should be a main Class.")//
     public static final OptionKey<String> AnalysisEntryClass = new OptionKey<>(null);
+
+    @Option(help = "File system splitor separated classpath for the analysis target application.")//
+    public static final OptionKey<String> AnalysisTargetAppCP = new OptionKey<>(null);
 }

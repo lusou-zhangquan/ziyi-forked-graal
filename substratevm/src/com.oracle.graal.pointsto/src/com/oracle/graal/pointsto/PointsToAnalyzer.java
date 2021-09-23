@@ -44,6 +44,7 @@ import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
 import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
 import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
 import com.oracle.graal.pointsto.standalone.HotSpotHost;
+import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.graal.pointsto.util.PointsToOptionParser;
 import com.oracle.graal.pointsto.util.Timer;
 import com.oracle.graal.pointsto.util.TimerCollection;
@@ -68,7 +69,14 @@ import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.compiler.word.WordTypes;
 import org.graalvm.nativeimage.hosted.Feature;
 
+import java.io.File;
 import java.lang.reflect.Method;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 
 public final class PointsToAnalyzer {
@@ -99,15 +107,29 @@ public final class PointsToAnalyzer {
 
     @SuppressWarnings("try")
     private PointsToAnalyzer(OptionValues options) {
-        analysisClassLoader = PointsToAnalyzer.class.getClassLoader();
         analysisFeatureManager = new AnalysisFeatureManager(options);
+        String appCP = PointstoOptions.AnalysisTargetAppCP.getValue(options);
+        if (appCP == null) {
+            AnalysisError.shouldNotReachHere("Must specify analysis target application's classpath with -H:" + PointstoOptions.AnalysisTargetAppCP.getName());
+        }
+        List<URL> urls = new ArrayList<>();
+        for (String cp : appCP.split(File.pathSeparator)) {
+            try {
+                File file = new File(cp);
+                if (file.exists()) {
+                    urls.add(file.toURI().toURL());
+                }
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+        }
+        analysisClassLoader = new URLClassLoader(urls.toArray(new URL[0]), ClassLoader.getPlatformClassLoader());
         Providers providers = getGraalCapability(RuntimeProvider.class).getHostBackend().getProviders();
         SnippetReflectionProvider snippetReflection = getGraalCapability(SnippetReflectionProvider.class);
         MetaAccessProvider originalMetaAccess = providers.getMetaAccess();
         debugContext = new DebugContext.Builder(options, new GraalDebugHandlersFactory(snippetReflection)).build();
         ForkJoinPool executor = PointsToAnalysis.createExecutor(debugContext, Math.min(Runtime.getRuntime().availableProcessors(), 32));
-        ClassLoader cl = ClassLoader.getSystemClassLoader();
-        HotSpotHost hotSpotHost = new HotSpotHost(options, cl);
+        HotSpotHost hotSpotHost = new HotSpotHost(options, analysisClassLoader);
         int wordSize = getWordSize();
         AnalysisPolicy analysisPolicy = PointstoOptions.AllocationSiteSensitiveHeap.getValue(options) ? new BytecodeSensitiveAnalysisPolicy(options)
                         : new DefaultAnalysisPolicy(options);
@@ -132,7 +154,7 @@ public final class PointsToAnalyzer {
         aUniverse.setBigBang(bigbang);
         ImageHeap heap = new ImageHeap();
         StandaloneImageHeapScanner heapScanner = new StandaloneImageHeapScanner(heap, aMetaAccess,
-                        snippetReflection, aConstantReflection, new AnalysisObjectScanningObserver(bigbang), cl);
+                        snippetReflection, aConstantReflection, new AnalysisObjectScanningObserver(bigbang), analysisClassLoader);
         aUniverse.setHeapScanner(heapScanner);
         HeapSnapshotVerifier heapVerifier = new HeapSnapshotVerifier(bigbang, heap, heapScanner);
         aUniverse.setHeapVerifier(heapVerifier);
@@ -257,7 +279,7 @@ public final class PointsToAnalyzer {
             throw new RuntimeException("No analysis entry main class is specified. Must use -H:" + optionName + "= option to specify the analysis entry main class.");
         } else {
             try {
-                Class<?> analysisMainClass = Class.forName(analysisTargetMainClass);
+                Class<?> analysisMainClass = Class.forName(analysisTargetMainClass, false, analysisClassLoader);
                 Method main = analysisMainClass.getDeclaredMethod("main", String[].class);
                 // main method is static, whatever the invokeSpecial is it is ignored.
                 bigbang.addRootMethod(main, true);
