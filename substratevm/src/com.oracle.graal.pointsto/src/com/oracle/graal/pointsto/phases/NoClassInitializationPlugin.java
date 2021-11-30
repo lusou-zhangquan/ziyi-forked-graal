@@ -24,24 +24,32 @@
  */
 package com.oracle.graal.pointsto.phases;
 
-import java.util.function.Supplier;
-
+import com.oracle.graal.pointsto.constraints.UnresolvedElementException;
+import com.oracle.graal.pointsto.infrastructure.WrappedConstantPool;
+import jdk.vm.ci.meta.ConstantPool;
+import jdk.vm.ci.meta.ResolvedJavaType;
 import org.graalvm.compiler.nodes.FrameState;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.graphbuilderconf.ClassInitializationPlugin;
 import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderContext;
 
-import com.oracle.graal.pointsto.constraints.UnresolvedElementException;
-import com.oracle.graal.pointsto.infrastructure.WrappedConstantPool;
-
-import jdk.vm.ci.meta.ConstantPool;
-import jdk.vm.ci.meta.ResolvedJavaType;
+import java.util.function.Supplier;
 
 /**
  * Do not trigger any class initialization, and do not emit any class initialization checks during
  * bytecode parsing.
  */
 public class NoClassInitializationPlugin implements ClassInitializationPlugin {
+
+    private boolean printWarnings;
+
+    public NoClassInitializationPlugin() {
+        this(false);
+    }
+
+    public NoClassInitializationPlugin(boolean printWarnings) {
+        this.printWarnings = printWarnings;
+    }
 
     @Override
     public boolean supportsLazyInitialization(ConstantPool cp) {
@@ -54,7 +62,12 @@ public class NoClassInitializationPlugin implements ClassInitializationPlugin {
         try {
             WrappedConstantPool.loadReferencedType(cp, cpi, bytecode, false);
         } catch (UnresolvedElementException uee) {
-            /* Plugin should be non-intrusive. Therefore we ignore missing class-path failures. */
+            // Report warning message when PrintUnresolvedElementWarning option is set. So user
+            // knows what happens when
+            // the analysis result is not the expected.
+            if (printWarnings) {
+                System.out.println("Warning: " + uee.getMessage());
+            }
         }
     }
 

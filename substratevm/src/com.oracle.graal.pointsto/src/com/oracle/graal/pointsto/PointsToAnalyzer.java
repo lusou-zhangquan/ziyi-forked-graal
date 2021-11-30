@@ -197,7 +197,7 @@ public final class PointsToAnalyzer {
             bigbang.getMetaAccess().lookupJavaType(JavaKind.Void.toJavaClass()).registerAsReachable();
 
             GraphBuilderConfiguration.Plugins plugins = new GraphBuilderConfiguration.Plugins(new InvocationPlugins());
-            NoClassInitializationPlugin classInitializationPlugin = new NoClassInitializationPlugin();
+            NoClassInitializationPlugin classInitializationPlugin = new NoClassInitializationPlugin(PointstoOptions.PrintUnresolvedElementWarning.getValue(options));
             plugins.setClassInitializationPlugin(classInitializationPlugin);
             aProviders.setGraphBuilderPlugins(plugins);
             registerInvocationPlugins(providers.getSnippetReflection(), plugins.getInvocationPlugins(), providers.getReplacements(),
