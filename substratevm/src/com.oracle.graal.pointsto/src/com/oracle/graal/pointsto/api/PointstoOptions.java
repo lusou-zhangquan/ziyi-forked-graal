@@ -228,4 +228,7 @@ public class PointstoOptions {
 
     @Option(help = "file:doc-files/AnalysisEntryPointFileHelp.txt")//
     public static final OptionKey<String> AnalysisEntryPointFile = new OptionKey<>(null);
+
+    @Option(help = "Print the unresolved class warnings, enabled by default.")//
+    public static final OptionKey<Boolean> PrintUnresolvedElementWarning = new OptionKey<>(true);
 }

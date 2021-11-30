@@ -47,6 +47,7 @@ import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -106,15 +107,31 @@ public class PointstoAnalyzerTester {
         }
     }
 
-    public void runAnalysisAndAssert() {
+    public void runAnalysisAndAssert(){
+        runAnalysisAndAssert(true);
+    }
+
+    /**
+     * Run the analysis and check the results.
+     * @param expectPass true if the analysis is expected to be successfully finished, false if the analysis is supposed
+     *                   to fail.
+     */
+    public void runAnalysisAndAssert(boolean expectPass) {
         PointsToAnalyzer pointstoAnalyzer = PointsToAnalyzer.createAnalyzer(arguments);
         UnsupportedFeatureException unsupportedFeatureException = null;
         try {
             try {
                 int ret = pointstoAnalyzer.run();
-                assertEquals("Analysis return code is expected to 0", 0, ret);
+                if (expectPass) {
+                    assertEquals("Analysis return code is expected to 0", 0, ret);
+                } else {
+                    assertNotEquals("The analysis is expected to fail, but succeeded", 0, ret);
+                }
             } catch (UnsupportedFeatureException e) {
                 unsupportedFeatureException = e;
+            }
+            if (!expectPass) {
+                return;
             }
             AnalysisUniverse universe = pointstoAnalyzer.getResultUniverse();
             assertNotNull(universe);
