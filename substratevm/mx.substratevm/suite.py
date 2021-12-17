@@ -403,6 +403,31 @@ suite = {
             ],
             "workingSets": "SVM",
         },
+        "com.oracle.graal.pointsto.test": {
+            "subDir": "src",
+            "sourceDirs": ["src"],
+            "dependencies": [
+                "mx:JUNIT_TOOL",
+                "sdk:GRAAL_SDK",
+                "POINTSTO",
+            ],
+            "requires": [
+                "jdk.unsupported",
+                "java.compiler",
+            ],
+            "requiresConcealed": {
+                "jdk.internal.vm.ci": [
+                    "jdk.vm.ci.meta",
+                ]
+            },
+            "checkstyle": "com.oracle.graal.pointsto",
+            "workingSets": "SVM",
+            "annotationProcessors": [
+                "compiler:GRAAL_PROCESSOR",
+            ],
+            "javaCompliance": "8+",
+            "spotbugs": "false",
+        },
         "com.oracle.svm.hosted": {
             "subDir": "src",
             "sourceDirs": ["src"],
@@ -1491,6 +1516,7 @@ suite = {
             "com.oracle.svm.test",
             "com.oracle.svm.configure.test",
             "com.oracle.svm.graal.test",
+            "com.oracle.graal.pointsto.test"
           ],
           "distDependencies": [
             "mx:JUNIT_TOOL",

@@ -60,6 +60,11 @@ public class PointstoConstantReflectionProvider extends HotSpotConstantReflectio
         return ret;
     }
 
+    /**
+     * The correctness of this method is verified by {@link com.oracle.graal.pointsto.test.ClassEqualityTest}
+     * @param type
+     * @return
+     */
     @Override
     public JavaConstant asJavaClass(ResolvedJavaType type) {
         AnalysisType t = (AnalysisType) type;

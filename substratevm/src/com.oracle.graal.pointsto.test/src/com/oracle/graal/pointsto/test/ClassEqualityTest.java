@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2021, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, 2021, Alibaba Group Holding Limited. All rights reserved.
+ * Copyright (c) 2022, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2022, Alibaba Group Holding Limited. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,25 +24,34 @@
  * questions.
  */
 
-package com.oracle.graal.pointsto.meta;
+package com.oracle.graal.pointsto.test;
 
-import jdk.vm.ci.meta.MetaAccessProvider;
-import jdk.vm.ci.meta.ResolvedJavaField;
-import org.graalvm.compiler.core.common.spi.JavaConstantFieldProvider;
+import org.junit.Test;
 
-public class PointstoConstantFieldProvider extends JavaConstantFieldProvider {
-
-    public PointstoConstantFieldProvider(MetaAccessProvider metaAccess) {
-        super(metaAccess);
+public class ClassEqualityTest {
+    static class C {
+        public static void foo() {
+        }
     }
 
-    /**
-     * In standalone mode, all classes are runtime initialized. We take all fields as not final, so that it doesn't
-     * read field value from current environment.
-     * Test {@link com.oracle.graal.pointsto.test.ConstantFieldTest} verifies this method.
-     **/
-    @Override
-    public boolean isFinalField(ResolvedJavaField field, ConstantFieldTool<?> tool) {
-        return false;
+    public static void main(String[] args) {
+        equals(C.class);
+    }
+
+    private static void equals(Class<?> clazz) {
+        if (clazz == C.class) {
+            C.foo();
+        }
+    }
+
+    @Test
+    public void test() {
+        PointstoAnalyzerTester tester = new PointstoAnalyzerTester();
+        //Analysis target classes are in the same jar with current testing class.
+        String testJar = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+        tester.setAnalysisArguments("-H:AnalysisEntryClass=com.oracle.graal.pointsto.test.ClassEqualityTest",
+                "-H:AnalysisTargetAppCP=" + testJar);
+        tester.setExpectedReachableMethods("com.oracle.graal.pointsto.test.ClassEqualityTest$C.foo()");
+        tester.runAnalysisAndAssert();
     }
 }
