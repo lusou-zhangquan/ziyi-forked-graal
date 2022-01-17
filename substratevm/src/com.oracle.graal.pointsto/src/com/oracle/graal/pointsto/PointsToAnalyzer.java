@@ -81,6 +81,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 
+import static org.graalvm.compiler.replacements.StandardGraphBuilderPlugins.registerInvocationPlugins;
+
 public final class PointsToAnalyzer {
 
     static {
@@ -198,6 +200,8 @@ public final class PointsToAnalyzer {
             NoClassInitializationPlugin classInitializationPlugin = new NoClassInitializationPlugin();
             plugins.setClassInitializationPlugin(classInitializationPlugin);
             aProviders.setGraphBuilderPlugins(plugins);
+            registerInvocationPlugins(providers.getSnippetReflection(), plugins.getInvocationPlugins(), providers.getReplacements(),
+                            false, true, false, providers.getLowerer());
         }
     }
 
