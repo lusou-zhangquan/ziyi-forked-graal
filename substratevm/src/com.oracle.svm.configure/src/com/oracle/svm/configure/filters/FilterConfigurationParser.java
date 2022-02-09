@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,9 +29,9 @@ import java.net.URI;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import com.oracle.svm.configure.ConfigurationParser;
 import com.oracle.svm.configure.json.JsonWriter;
-import com.oracle.svm.core.configure.ConfigurationParser;
-import com.oracle.svm.core.util.json.JSONParserException;
+import com.oracle.svm.common.util.json.JSONParserException;
 
 public class FilterConfigurationParser extends ConfigurationParser {
     private final ConfigurationFilter filter;

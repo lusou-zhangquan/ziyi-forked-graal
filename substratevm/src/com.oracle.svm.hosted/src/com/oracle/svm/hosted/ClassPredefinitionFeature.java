@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Alibaba Group Holding Limited. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Alibaba Group Holding Limited. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,11 +38,12 @@ import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeClassInitialization;
 
+import com.oracle.svm.configure.ConfigurationFile;
+import com.oracle.svm.configure.PredefinedClassesConfigurationParser;
+import com.oracle.svm.configure.PredefinedClassesRegistry;
+import com.oracle.svm.common.util.ClassUtils;
 import com.oracle.svm.core.annotate.AutomaticFeature;
-import com.oracle.svm.core.configure.ConfigurationFile;
 import com.oracle.svm.core.configure.ConfigurationFiles;
-import com.oracle.svm.core.configure.PredefinedClassesConfigurationParser;
-import com.oracle.svm.core.configure.PredefinedClassesRegistry;
 import com.oracle.svm.core.hub.PredefinedClassesSupport;
 import com.oracle.svm.core.util.UserError;
 import com.oracle.svm.core.util.VMError;
@@ -134,7 +135,7 @@ public class ClassPredefinitionFeature implements Feature {
                     data = in.readAllBytes();
                 }
                 // Compute our own hash code, the files could have been messed with.
-                String hash = PredefinedClassesSupport.hash(data, 0, data.length);
+                String hash = ClassUtils.hashClassData(data, 0, data.length);
 
                 /*
                  * Compute a "canonical hash" that does not incorporate debug information such as
@@ -144,7 +145,7 @@ public class ClassPredefinitionFeature implements Feature {
                 ClassWriter writer = new ClassWriter(0);
                 reader.accept(writer, ClassReader.SKIP_DEBUG);
                 byte[] canonicalData = writer.toByteArray();
-                String canonicalHash = PredefinedClassesSupport.hash(canonicalData, 0, canonicalData.length);
+                String canonicalHash = ClassUtils.hashClassData(canonicalData, 0, canonicalData.length);
 
                 String className = transformClassName(reader.getClassName());
                 PredefinedClass record = nameToRecord.computeIfAbsent(className, PredefinedClass::new);

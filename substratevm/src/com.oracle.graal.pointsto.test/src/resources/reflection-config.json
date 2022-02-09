@@ -1,0 +1,32 @@
+[
+{
+    "condition": {
+        "typeReachable": "com.oracle.graal.pointsto.test.PointstoReflectionTest"
+    },
+    "name": "com.oracle.graal.pointsto.test.ReflectClassTest"
+},
+{
+    "condition": {
+        "typeReachable": "com.oracle.graal.pointsto.test.PointstoReflectionTest"
+    },
+    "name": "com.oracle.graal.pointsto.test.ReflectFieldTest",
+    "fields": [
+        {"name": "reflectFieldType"}
+    ]
+},
+{
+    "condition": {
+        "typeReachable":"com.oracle.graal.pointsto.test.PointstoReflectionTest"
+    },
+    "name": "com.oracle.graal.pointsto.test.ReflectMethodTest",
+    "methods":[
+        {"name":"reflectMethod","parameterTypes":[] }
+    ]
+},
+{
+    "condition": {
+        "typeReachable": "com.oracle.graal.pointsto.test.UnreachableClassCondition"
+    },
+    "name": "com.oracle.graal.pointsto.test.UnreachableClassType"
+}
+]

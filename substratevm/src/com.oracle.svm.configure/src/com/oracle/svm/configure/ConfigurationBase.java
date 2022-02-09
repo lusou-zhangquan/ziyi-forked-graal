@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@ package com.oracle.svm.configure;
 import java.util.function.Consumer;
 
 import com.oracle.svm.configure.json.JsonPrintable;
-import com.oracle.svm.core.configure.ConfigurationParser;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 
 public abstract class ConfigurationBase<T extends ConfigurationBase<T, P>, P> implements JsonPrintable {

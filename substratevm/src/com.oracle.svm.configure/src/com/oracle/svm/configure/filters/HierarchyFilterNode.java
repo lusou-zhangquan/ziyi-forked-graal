@@ -34,7 +34,7 @@ import java.util.StringTokenizer;
 
 import com.oracle.svm.configure.json.JsonWriter;
 
-import static com.oracle.svm.core.configure.ConfigurationParser.asList;
+import static com.oracle.svm.configure.ConfigurationParser.asList;
 
 /** Represents a rule that includes or excludes a set of Java classes. */
 public final class HierarchyFilterNode implements ConfigurationFilter {

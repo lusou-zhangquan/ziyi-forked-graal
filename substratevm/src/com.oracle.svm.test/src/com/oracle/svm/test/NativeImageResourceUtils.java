@@ -39,7 +39,7 @@ import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.junit.Assert;
 
-import com.oracle.svm.core.configure.ResourcesRegistry;
+import com.oracle.svm.configure.ResourcesRegistry;
 
 public class NativeImageResourceUtils {
 

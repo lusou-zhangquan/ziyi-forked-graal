@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.configure;
+package com.oracle.svm.configure;
 
 import java.net.URI;
 import java.util.Collections;
@@ -33,11 +33,10 @@ import java.util.stream.Collectors;
 
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 
-import com.oracle.svm.core.jdk.proxy.DynamicProxyRegistry;
-import com.oracle.svm.core.util.json.JSONParserException;
+import com.oracle.svm.common.util.json.JSONParserException;
 
 /**
- * Parses JSON describing lists of interfaces and register them in the {@link DynamicProxyRegistry}.
+ * Parses JSON describing lists of interfaces and register them in the DynamicProxyRegistry.
  */
 public final class ProxyConfigurationParser extends ConfigurationParser {
     private final Consumer<ConditionalElement<List<String>>> interfaceListConsumer;

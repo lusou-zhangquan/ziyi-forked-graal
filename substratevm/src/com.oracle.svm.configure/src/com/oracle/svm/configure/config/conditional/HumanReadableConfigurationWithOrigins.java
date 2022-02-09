@@ -29,9 +29,9 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Set;
 
+import com.oracle.svm.configure.ConfigurationFile;
 import com.oracle.svm.configure.json.JsonPrintable;
 import com.oracle.svm.configure.json.JsonWriter;
-import com.oracle.svm.core.configure.ConfigurationFile;
 
 public class HumanReadableConfigurationWithOrigins implements JsonPrintable {
 

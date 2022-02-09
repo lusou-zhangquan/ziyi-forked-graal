@@ -52,6 +52,7 @@ import com.oracle.graal.pointsto.util.PointsToOptionParser;
 import com.oracle.graal.pointsto.util.Timer;
 import com.oracle.graal.pointsto.util.TimerCollection;
 import com.oracle.svm.common.option.CommonOptions;
+import com.oracle.graal.pointsto.standalone.reflect.PointstoReflectionFeature;
 import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
 import jdk.vm.ci.amd64.AMD64Kind;
@@ -317,6 +318,7 @@ public final class PointsToAnalyzer {
     private void registerFeatures() {
         analysisFeatureManager.registerFeaturesFromOptions();
         analysisFeatureManager.registerFeature(PointstoClassInitializationFeature.class);
+        analysisFeatureManager.registerFeature(PointstoReflectionFeature.class);
         // Register DashboardDump feature by default, user can enable the feature by setting
         // -H:+DumpAnalysisReports
         analysisFeatureManager.registerFeature("com.oracle.graal.pointsto.standalone.features.DashboardDumpDelegate$Feature");
