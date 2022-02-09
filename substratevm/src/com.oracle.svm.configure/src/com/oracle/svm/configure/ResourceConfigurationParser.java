@@ -1,5 +1,9 @@
 /*
+<<<<<<< HEAD:substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/configure/ResourceConfigurationParser.java
  * Copyright (c) 2019, 2019, Oracle and/or its affiliates. All rights reserved.
+=======
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+>>>>>>> 46aebf209f4... Analyzing reflections in standalone pontsto:substratevm/src/com.oracle.svm.configure/src/com/oracle/svm/configure/ResourceConfigurationParser.java
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +26,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.configure;
+package com.oracle.svm.configure;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -33,7 +37,8 @@ import java.util.function.BiConsumer;
 
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 
-import com.oracle.svm.core.util.json.JSONParser;
+import com.oracle.svm.common.util.ResourceUtils;
+import com.oracle.svm.common.util.json.JSONParser;
 
 public class ResourceConfigurationParser extends ConfigurationParser {
     private final ResourcesRegistry registry;

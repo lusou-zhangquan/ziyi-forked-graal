@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,12 +22,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.util.json;
+package com.oracle.svm.core.configure;
 
-@SuppressWarnings("serial")
-public final class JSONParserException extends RuntimeException {
+import org.graalvm.nativeimage.hosted.Feature;
 
-    public JSONParserException(final String msg) {
-        super(msg);
+import com.oracle.svm.configure.config.SignatureUtil;
+import com.oracle.svm.core.annotate.AutomaticFeature;
+import com.oracle.svm.util.ModuleSupport;
+
+@AutomaticFeature
+public class SignatureUtilFeature implements Feature {
+    @Override
+    public void afterRegistration(AfterRegistrationAccess access) {
+        if (!access.getApplicationClassPath().isEmpty()) {
+            ModuleSupport.exportAndOpenPackageToClass("jdk.internal.vm.ci", "jdk.vm.ci.meta", false, SignatureUtil.class);
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,8 @@
  */
 package com.oracle.svm.hosted;
 
-import com.oracle.svm.core.TypeResult;
-import com.oracle.svm.core.util.json.JSONParserException;
+import com.oracle.svm.common.type.TypeResult;
+import com.oracle.svm.common.util.json.JSONParserException;
 
 import jdk.vm.ci.meta.MetaUtil;
 

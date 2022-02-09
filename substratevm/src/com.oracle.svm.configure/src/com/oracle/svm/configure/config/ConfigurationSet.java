@@ -37,13 +37,13 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.oracle.svm.core.configure.ConfigurationFile;
-import com.oracle.svm.core.configure.ConfigurationParser;
-import com.oracle.svm.core.configure.PredefinedClassesConfigurationParser;
-import com.oracle.svm.core.configure.ProxyConfigurationParser;
-import com.oracle.svm.core.configure.ReflectionConfigurationParser;
-import com.oracle.svm.core.configure.ResourceConfigurationParser;
-import com.oracle.svm.core.configure.SerializationConfigurationParser;
+import com.oracle.svm.configure.ConfigurationFile;
+import com.oracle.svm.configure.ConfigurationParser;
+import com.oracle.svm.configure.PredefinedClassesConfigurationParser;
+import com.oracle.svm.configure.ProxyConfigurationParser;
+import com.oracle.svm.configure.ReflectionConfigurationParser;
+import com.oracle.svm.configure.ResourceConfigurationParser;
+import com.oracle.svm.configure.SerializationConfigurationParser;
 
 public class ConfigurationSet {
     public static final Function<IOException, Exception> FAIL_ON_EXCEPTION = e -> e;

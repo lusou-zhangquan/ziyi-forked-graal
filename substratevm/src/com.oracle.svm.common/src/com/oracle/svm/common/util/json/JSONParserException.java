@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Alibaba Group Holding Limited. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,11 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.configure;
+package com.oracle.svm.common.util.json;
 
-import java.nio.file.Path;
+@SuppressWarnings("serial")
+public final class JSONParserException extends RuntimeException {
 
-public interface PredefinedClassesRegistry {
-
-    void add(String nameInfo, String hash, Path basePath);
+    public JSONParserException(final String msg) {
+        super(msg);
+    }
 }

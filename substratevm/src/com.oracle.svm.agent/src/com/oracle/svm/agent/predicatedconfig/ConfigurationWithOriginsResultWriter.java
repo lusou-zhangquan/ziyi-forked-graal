@@ -39,6 +39,7 @@ import java.util.function.Supplier;
 import com.oracle.svm.agent.tracing.ConfigurationResultWriter;
 import com.oracle.svm.agent.tracing.core.Tracer;
 import com.oracle.svm.agent.tracing.core.TracingResultWriter;
+import com.oracle.svm.configure.ConfigurationFile;
 import com.oracle.svm.configure.config.PredefinedClassesConfiguration;
 import com.oracle.svm.configure.config.ProxyConfiguration;
 import com.oracle.svm.configure.config.ResourceConfiguration;
@@ -47,7 +48,6 @@ import com.oracle.svm.configure.config.TypeConfiguration;
 import com.oracle.svm.configure.json.JsonWriter;
 import com.oracle.svm.configure.trace.AccessAdvisor;
 import com.oracle.svm.configure.trace.TraceProcessor;
-import com.oracle.svm.core.configure.ConfigurationFile;
 import com.oracle.svm.jni.nativeapi.JNIMethodId;
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,11 +26,6 @@ package com.oracle.svm.configure.config;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.graalvm.nativeimage.hosted.Feature;
-
-import com.oracle.svm.core.annotate.AutomaticFeature;
-import com.oracle.svm.util.ModuleSupport;
 
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.MetaUtil;
@@ -98,15 +93,5 @@ public class SignatureUtil {
             s = sb.toString();
         }
         return s;
-    }
-}
-
-@AutomaticFeature
-class SignatureUtilFeature implements Feature {
-    @Override
-    public void afterRegistration(AfterRegistrationAccess access) {
-        if (!access.getApplicationClassPath().isEmpty()) {
-            ModuleSupport.exportAndOpenPackageToClass("jdk.internal.vm.ci", "jdk.vm.ci.meta", false, SignatureUtil.class);
-        }
     }
 }

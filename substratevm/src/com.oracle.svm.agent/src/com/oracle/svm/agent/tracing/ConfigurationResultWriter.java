@@ -33,9 +33,9 @@ import java.util.Map;
 
 import com.oracle.svm.agent.tracing.core.Tracer;
 import com.oracle.svm.agent.tracing.core.TracingResultWriter;
+import com.oracle.svm.configure.ConfigurationFile;
 import com.oracle.svm.configure.json.JsonWriter;
 import com.oracle.svm.configure.trace.TraceProcessor;
-import com.oracle.svm.core.configure.ConfigurationFile;
 
 public class ConfigurationResultWriter extends Tracer implements TracingResultWriter {
     private final TraceProcessor processor;
