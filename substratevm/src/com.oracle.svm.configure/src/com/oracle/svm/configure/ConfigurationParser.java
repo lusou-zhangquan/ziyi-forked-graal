@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.configure;
+package com.oracle.svm.configure;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -40,22 +40,21 @@ import java.util.Map;
 import java.util.Set;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.util.json.JSONParser;
 import org.graalvm.util.json.JSONParserException;
 
-import com.oracle.svm.core.SubstrateUtil;
-import com.oracle.svm.core.jdk.JavaNetSubstitutions;
-import com.oracle.svm.core.util.VMError;
+import com.oracle.svm.common.util.CommonUtils;
 
 public abstract class ConfigurationParser {
     public static InputStream openStream(URI uri) throws IOException {
         URL url = uri.toURL();
         if ("file".equals(url.getProtocol()) || "jar".equalsIgnoreCase(url.getProtocol()) ||
-                        (!SubstrateUtil.HOSTED && JavaNetSubstitutions.RESOURCE_PROTOCOL.equals(url.getProtocol()))) {
+                        (!CommonUtils.isHosted() && CommonUtils.RESOURCE_PROTOCOL.equals(url.getProtocol()))) {
             return url.openStream();
         }
-        throw VMError.shouldNotReachHere("For security reasons, reading configurations is not supported from URIs with protocol: " + url.getProtocol());
+        throw GraalError.shouldNotReachHere("For security reasons, reading configurations is not supported from URIs with protocol: " + url.getProtocol());
     }
 
     public static final String CONDITIONAL_KEY = "condition";

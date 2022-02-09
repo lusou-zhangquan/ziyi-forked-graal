@@ -32,11 +32,11 @@ import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.MapCursor;
 import org.graalvm.util.json.JSONParserException;
 
+import com.oracle.svm.configure.ConfigurationFile;
+import com.oracle.svm.configure.ConfigurationParser;
 import com.oracle.svm.configure.config.ConfigurationSet;
 import com.oracle.svm.configure.json.JsonPrintable;
 import com.oracle.svm.configure.json.JsonWriter;
-import com.oracle.svm.core.configure.ConfigurationFile;
-import com.oracle.svm.core.configure.ConfigurationParser;
 
 public class PartialConfigurationWithOrigins extends ConfigurationParser implements JsonPrintable {
     private static final ConfigurationSet emptyConfigurationSet = new ConfigurationSet();

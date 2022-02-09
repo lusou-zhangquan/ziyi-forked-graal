@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.configure;
+package com.oracle.svm.configure.tool;
 
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
@@ -52,8 +52,10 @@ import com.oracle.svm.configure.config.conditional.ConditionalConfigurationPredi
 import com.oracle.svm.configure.config.conditional.MethodCallNode;
 import com.oracle.svm.configure.config.conditional.MethodInfoRepository;
 import com.oracle.svm.configure.config.conditional.PartialConfigurationWithOrigins;
+import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.nativeimage.ImageInfo;
 
+import com.oracle.svm.configure.ConfigurationFile;
 import com.oracle.svm.configure.config.ConfigurationFileCollection;
 import com.oracle.svm.configure.config.ConfigurationSet;
 import com.oracle.svm.configure.filters.ComplexFilter;
@@ -64,8 +66,6 @@ import com.oracle.svm.configure.filters.HierarchyFilterNode;
 import com.oracle.svm.configure.json.JsonWriter;
 import com.oracle.svm.configure.trace.AccessAdvisor;
 import com.oracle.svm.configure.trace.TraceProcessor;
-import com.oracle.svm.core.configure.ConfigurationFile;
-import com.oracle.svm.core.util.VMError;
 
 public class ConfigurationTool {
 
@@ -546,7 +546,7 @@ public class ConfigurationTool {
             BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
             return reader.lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
-            VMError.shouldNotReachHere(e);
+            GraalError.shouldNotReachHere(e);
         }
         return null;
     }

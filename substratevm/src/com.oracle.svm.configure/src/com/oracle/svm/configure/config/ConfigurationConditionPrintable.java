@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,8 @@
  */
 package com.oracle.svm.configure.config;
 
-import static com.oracle.svm.core.configure.ConfigurationParser.CONDITIONAL_KEY;
-import static com.oracle.svm.core.configure.ConfigurationParser.TYPE_REACHABLE_KEY;
+import static com.oracle.svm.configure.ConfigurationParser.CONDITIONAL_KEY;
+import static com.oracle.svm.configure.ConfigurationParser.TYPE_REACHABLE_KEY;
 
 import java.io.IOException;
 

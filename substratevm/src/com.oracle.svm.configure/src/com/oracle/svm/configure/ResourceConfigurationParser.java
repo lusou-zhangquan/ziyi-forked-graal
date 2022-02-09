@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.configure;
+package com.oracle.svm.configure;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -37,7 +37,7 @@ import org.graalvm.collections.MapCursor;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.util.json.JSONParserException;
 
-import com.oracle.svm.core.jdk.localization.LocalizationSupport;
+import com.oracle.svm.common.util.ResourceUtils;
 
 public class ResourceConfigurationParser extends ConfigurationParser {
     private final ResourcesRegistry registry;
@@ -129,7 +129,7 @@ public class ResourceConfigurationParser extends ConfigurationParser {
 
     private static Locale parseLocale(Object input) {
         String localeTag = asString(input);
-        Locale locale = LocalizationSupport.parseLocaleFromTag(localeTag);
+        Locale locale = ResourceUtils.parseLocaleFromTag(localeTag);
         if (locale == null) {
             throw new JSONParserException(localeTag + " is not a valid locale tag");
         }

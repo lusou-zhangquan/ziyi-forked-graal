@@ -26,13 +26,13 @@
 
 package com.oracle.graal.pointsto.standalone.test;
 
+import com.oracle.graal.pointsto.phases.PointsToMethodHandlePlugin;
 import org.junit.Test;
 
 /**
- * This test verifies whether the invokeDynamic in handled by
- * {@link com.oracle.graal.pointsto.phases.PointsToMethodHandlePlugin}. This test class must be
- * compiled with VM specific 9+, so that the String concat operation will be compiled into
- * invokeDynamic.
+ * This test verifies whether the invokeDynamic in handled by {@link PointsToMethodHandlePlugin}.
+ * This test class must be compiled with VM specific 9+, so that the String concat operation will be
+ * compiled into invokeDynamic.
  */
 public class StandaloneInvokeDynamicTest {
 

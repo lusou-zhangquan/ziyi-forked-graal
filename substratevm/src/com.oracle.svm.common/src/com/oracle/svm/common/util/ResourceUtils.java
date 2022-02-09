@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, 2021, Alibaba Group Holding Limited. All rights reserved.
+ * Copyright (c) 2022, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2022, Alibaba Group Holding Limited. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,11 +23,33 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.core.configure;
 
-import java.net.URI;
+package com.oracle.svm.common.util;
 
-public interface PredefinedClassesRegistry {
+import java.util.IllformedLocaleException;
+import java.util.Locale;
 
-    void add(String nameInfo, String hash, URI baseUri);
+public class ResourceUtils {
+    /**
+     * @return locale for given tag or null for invalid ones
+     */
+    @SuppressWarnings("deprecation")
+    public static Locale parseLocaleFromTag(String tag) {
+        try {
+            return new Locale.Builder().setLanguageTag(tag).build();
+        } catch (IllformedLocaleException ex) {
+            /*- Custom made locales consisting of at most three parts separated by '-' are also supported */
+            String[] parts = tag.split("-");
+            switch (parts.length) {
+                case 1:
+                    return new Locale(parts[0]);
+                case 2:
+                    return new Locale(parts[0], parts[1]);
+                case 3:
+                    return new Locale(parts[0], parts[1], parts[2]);
+                default:
+                    return null;
+            }
+        }
+    }
 }

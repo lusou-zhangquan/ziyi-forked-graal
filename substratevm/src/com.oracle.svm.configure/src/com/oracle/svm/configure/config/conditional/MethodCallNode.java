@@ -31,8 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+import com.oracle.svm.configure.ConfigurationFile;
 import com.oracle.svm.configure.config.ConfigurationSet;
-import com.oracle.svm.core.configure.ConfigurationFile;
 
 public final class MethodCallNode {
 

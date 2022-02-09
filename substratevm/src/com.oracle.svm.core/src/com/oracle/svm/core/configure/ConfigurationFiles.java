@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 import org.graalvm.compiler.options.Option;
 import org.graalvm.compiler.options.OptionType;
 
+import com.oracle.svm.configure.ConfigurationFile;
 import com.oracle.svm.core.option.HostedOptionKey;
 import com.oracle.svm.core.option.LocatableMultiOptionValue;
 import com.oracle.svm.core.util.UserError;

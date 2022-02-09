@@ -30,9 +30,9 @@ import org.graalvm.nativeimage.hosted.RuntimeReflection;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
 import org.graalvm.nativeimage.impl.RuntimeClassInitializationSupport;
 
-import com.oracle.svm.core.configure.ResourcesRegistry;
 import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
+import com.oracle.svm.configure.ResourcesRegistry;
 
 @AutomaticallyRegisteredFeature
 public class JavaNetHttpFeature extends JNIRegistrationUtil implements InternalFeature {
