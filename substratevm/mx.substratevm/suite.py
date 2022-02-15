@@ -1470,6 +1470,7 @@ suite = {
                 "com.oracle.graal.pointsto.typestate",
                 "com.oracle.graal.pointsto.infrastructure",
                 "com.oracle.graal.pointsto.flow.context.object",
+                "com.oracle.graal.pointsto.standalone.features",
               ],
               "requires" : ["jdk.unsupported"],
               "requiresConcealed" : {

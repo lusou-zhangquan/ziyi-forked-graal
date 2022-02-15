@@ -36,6 +36,8 @@ import com.oracle.graal.pointsto.meta.PointstoConstantFieldProvider;
 import com.oracle.graal.pointsto.meta.PointstoConstantReflectionProvider;
 import com.oracle.graal.pointsto.meta.PointstoStampProvider;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
+import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
+import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
 import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
 import com.oracle.graal.pointsto.standalone.HotSpotHost;
 import com.oracle.graal.pointsto.util.PointsToOptionParser;
@@ -58,6 +60,7 @@ import org.graalvm.compiler.printer.GraalDebugHandlersFactory;
 import org.graalvm.compiler.runtime.RuntimeProvider;
 import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.compiler.word.WordTypes;
+import org.graalvm.nativeimage.hosted.Feature;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.ForkJoinPool;
@@ -82,11 +85,16 @@ public final class PointsToAnalyzer {
     }
 
     private final StandalonePointsToAnalysis bigbang;
+    private AnalysisFeatureManager analysisFeatureManager;
+    private ClassLoader analysisClassLoader;
     private final DebugContext debugContext;
+    private AnalysisFeatureImpl.OnAnalysisExitAccessImpl onAnalysisExitAccess;
     private String analysisTargetMainClass;
 
     @SuppressWarnings("try")
     private PointsToAnalyzer(OptionValues options) {
+        analysisClassLoader = PointsToAnalyzer.class.getClassLoader();
+        analysisFeatureManager = new AnalysisFeatureManager(options);
         Providers providers = getGraalCapability(RuntimeProvider.class).getHostBackend().getProviders();
         SnippetReflectionProvider snippetReflection = getGraalCapability(SnippetReflectionProvider.class);
         MetaAccessProvider originalMetaAccess = providers.getMetaAccess();
@@ -176,14 +184,23 @@ public final class PointsToAnalyzer {
     @SuppressWarnings("try")
     public int run() {
         registerEntryMethod();
+        registerFeatures();
         int exitCode = 0;
+        Feature.BeforeAnalysisAccess beforeAnalysisAccess = new AnalysisFeatureImpl.BeforeAnalysisAccessImpl(analysisFeatureManager, analysisClassLoader, bigbang, debugContext);
+        analysisFeatureManager.forEachFeature(feature -> feature.beforeAnalysis(beforeAnalysisAccess));
         try (Timer.StopTimer t = bigbang.analysisTimer.start()) {
-            bigbang.runAnalysis(debugContext, (analysisUniverse) ->
-               true);
+            AnalysisFeatureImpl.DuringAnalysisAccessImpl config = new AnalysisFeatureImpl.DuringAnalysisAccessImpl(analysisFeatureManager, analysisClassLoader, bigbang, debugContext);
+            bigbang.runAnalysis(debugContext, (analysisUniverse) -> {
+                ((HotSpotHost) bigbang.getHostVM()).notifyClassReachabilityListener(analysisUniverse, config);
+                analysisFeatureManager.forEachFeature(feature -> feature.duringAnalysis(config));
+                return !config.getAndResetRequireAnalysisIteration();
+            });
         } catch (Throwable e) {
             reportException(e);
             exitCode = 1;
         }
+        onAnalysisExitAccess = new AnalysisFeatureImpl.OnAnalysisExitAccessImpl(analysisFeatureManager, analysisClassLoader, bigbang, debugContext);
+        analysisFeatureManager.forEachFeature(feature -> feature.onAnalysisExit(onAnalysisExitAccess));
         bigbang.getUnsupportedFeatures().report(bigbang);
         return exitCode;
     }
@@ -198,6 +215,15 @@ public final class PointsToAnalyzer {
 
     public AnalysisUniverse getResultUniverse() {
         return bigbang.getUniverse();
+    }
+
+    public Object getResultFromFeature(Class<? extends Feature> feature) {
+        return onAnalysisExitAccess.getResult(feature);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerFeatures() {
+        analysisFeatureManager.registerFeaturesFromOptions();
     }
 
     private void registerEntryMethod() {
