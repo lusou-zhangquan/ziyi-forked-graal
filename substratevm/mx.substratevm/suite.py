@@ -398,6 +398,7 @@ suite = {
             "sourceDirs": ["src"],
             "dependencies": [
                 "com.oracle.svm.common",
+                "sdk:GRAAL_SDK",
             ],
             "requires" : [
                 "jdk.unsupported" # sun.misc.Unsafe
