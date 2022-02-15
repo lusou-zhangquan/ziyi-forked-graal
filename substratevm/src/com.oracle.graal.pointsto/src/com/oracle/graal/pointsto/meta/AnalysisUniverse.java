@@ -596,7 +596,7 @@ public class AnalysisUniverse implements Universe {
         }
     }
 
-    private static Set<AnalysisMethod> getMethodImplementations(AnalysisMethod method, boolean includeInlinedMethods) {
+    public static Set<AnalysisMethod> getMethodImplementations(AnalysisMethod method, boolean includeInlinedMethods) {
         Set<AnalysisMethod> implementations = new LinkedHashSet<>();
         if (method.wrapped.canBeStaticallyBound() || method.isConstructor()) {
             if (includeInlinedMethods ? method.isReachable() : method.isImplementationInvoked()) {
