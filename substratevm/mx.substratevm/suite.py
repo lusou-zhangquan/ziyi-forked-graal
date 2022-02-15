@@ -394,6 +394,7 @@ suite = {
             "sourceDirs": ["src"],
             "dependencies": [
                 "com.oracle.svm.common",
+                "sdk:GRAAL_SDK",
             ],
             "checkstyle": "com.oracle.graal.pointsto",
             "javaCompliance": "8+",

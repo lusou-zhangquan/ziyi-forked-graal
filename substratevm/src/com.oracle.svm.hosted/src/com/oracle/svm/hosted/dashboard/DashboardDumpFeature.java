@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.hosted.dashboard;
 
+import com.oracle.graal.pointsto.BigBang;
 import com.oracle.graal.pointsto.reports.ReportUtils;
 import com.oracle.svm.core.annotate.AutomaticFeature;
 import com.oracle.svm.hosted.FeatureImpl.AfterCompilationAccessImpl;
@@ -46,6 +47,12 @@ import java.nio.channels.Channels;
 
 @AutomaticFeature
 public class DashboardDumpFeature implements Feature {
+
+    private BigBang bb = null;
+
+    public void setBB(BigBang bb) {
+        this.bb = bb;
+    }
 
     private static boolean isHeapBreakdownDumped() {
         return DashboardOptions.DashboardAll.getValue() || DashboardOptions.DashboardHeap.getValue();
@@ -115,6 +122,7 @@ public class DashboardDumpFeature implements Feature {
     @Override
     public void onAnalysisExit(OnAnalysisExitAccess access) {
         if (isPointsToDumped()) {
+            PointsToJsonObject pointsToJsonObject = bb == null ? new PointsToJsonObject(access) : new PointsToJsonObject(bb);
             if (isJsonFormat()) {
                 ReportUtils.report(
                                 "Dashboard PointsTo analysis JSON dump",
@@ -122,7 +130,7 @@ public class DashboardDumpFeature implements Feature {
                                 true,
                                 os -> {
                                     try (PrintWriter pw = new PrintWriter(os)) {
-                                        dumper.put(pw, "points-to", new PointsToJsonObject(access));
+                                        dumper.put(pw, "points-to", pointsToJsonObject);
                                     }
                                 });
             }
@@ -134,7 +142,7 @@ public class DashboardDumpFeature implements Feature {
                                 os -> {
                                     try (GraphOutput<?, ?> out = GraphOutput.newBuilder(VoidGraphStructure.INSTANCE).embedded(true).build(Channels.newChannel(os))) {
                                         out.beginGroup(null, "points-to", null, null, 0, Collections.emptyMap());
-                                        new PointsToJsonObject(access).dump(out);
+                                        pointsToJsonObject.dump(out);
                                         out.endGroup();
                                     } catch (IOException ex) {
                                         ((OnAnalysisExitAccessImpl) access).getDebugContext().log("Dump of PointsTo analysis failed with: %s", ex);
