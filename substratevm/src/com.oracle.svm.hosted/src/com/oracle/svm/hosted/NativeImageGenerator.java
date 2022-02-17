@@ -152,6 +152,7 @@ import com.oracle.graal.pointsto.reports.ReportUtils;
 import com.oracle.graal.pointsto.typestate.TypeState;
 import com.oracle.graal.pointsto.util.Timer;
 import com.oracle.graal.pointsto.util.Timer.StopTimer;
+import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.core.BuildArtifacts;
 import com.oracle.svm.core.BuildArtifacts.ArtifactType;
 import com.oracle.svm.core.FrameAccess;
@@ -1659,7 +1660,7 @@ public class NativeImageGenerator {
             ReportUtils.report(description, file.getAbsoluteFile().toPath(), reporter);
         } else {
             String name = "image_build_statistics_" + ReportUtils.extractImageName(imageName);
-            String path = SubstrateOptions.Path.getValue() + File.separatorChar + "reports";
+            String path = CommonOptions.reportsPath(bb.getOptions(), "reports").toString();
             ReportUtils.report(description, path, name, "json", reporter);
         }
     }
@@ -1676,7 +1677,7 @@ public class NativeImageGenerator {
     }
 
     public static Path generatedFiles(OptionValues optionValues) {
-        String pathName = SubstrateOptions.Path.getValue(optionValues);
+        String pathName = CommonOptions.Path.getValue(optionValues);
         Path path = FileSystems.getDefault().getPath(pathName);
         if (!Files.exists(path)) {
             try {

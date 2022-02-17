@@ -37,16 +37,18 @@ import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.graal.pointsto.meta.PointstoConstantFieldProvider;
 import com.oracle.graal.pointsto.meta.PointstoConstantReflectionProvider;
 import com.oracle.graal.pointsto.meta.PointstoStampProvider;
-import com.oracle.graal.pointsto.phases.PointstoMethodHandlePlugin;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
-import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
-import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
-import com.oracle.graal.pointsto.standalone.features.PointstoClassInitializationFeature;
-import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
+import com.oracle.graal.pointsto.phases.PointstoMethodHandlePlugin;
+import com.oracle.graal.pointsto.reports.AnalysisReporter;
 import com.oracle.graal.pointsto.standalone.HotSpotHost;
+import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
+import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
+import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
+import com.oracle.graal.pointsto.standalone.features.PointstoClassInitializationFeature;
 import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.graal.pointsto.util.PointsToOptionParser;
 import com.oracle.graal.pointsto.util.Timer;
+import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
 import jdk.vm.ci.amd64.AMD64Kind;
@@ -54,7 +56,6 @@ import jdk.vm.ci.hotspot.HotSpotJVMCIRuntime;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.MetaAccessProvider;
 import jdk.vm.ci.runtime.JVMCI;
-
 import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
 import org.graalvm.compiler.api.runtime.GraalJVMCICompiler;
 import org.graalvm.compiler.debug.DebugContext;
@@ -70,17 +71,15 @@ import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 import org.graalvm.compiler.word.WordTypes;
 import org.graalvm.nativeimage.hosted.Feature;
 
-
-import java.io.File;
-import java.lang.reflect.Method;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -106,6 +105,7 @@ public final class PointsToAnalyzer {
         }
     }
 
+    private OptionValues options;
     private final StandalonePointsToAnalysis bigbang;
     private AnalysisFeatureManager analysisFeatureManager;
     private ClassLoader analysisClassLoader;
@@ -117,6 +117,7 @@ public final class PointsToAnalyzer {
 
     @SuppressWarnings("try")
     private PointsToAnalyzer(OptionValues options) {
+        this.options = options;
         analysisFeatureManager = new AnalysisFeatureManager(options);
         String appCP = PointstoOptions.AnalysisTargetAppCP.getValue(options);
         if (appCP == null) {
@@ -154,9 +155,9 @@ public final class PointsToAnalyzer {
         PointstoStampProvider aStampProvider = new PointstoStampProvider(aMetaAccess);
         AnalysisMetaAccessExtensionProvider aMetaAccessExtensionProvider = new AnalysisMetaAccessExtensionProvider();
         HostedProviders aProviders = new HostedProviders(aMetaAccess, null, aConstantReflection, aConstantFieldProvider,
-                providers.getForeignCalls(), providers.getLowerer(), providers.getReplacements(), aStampProvider, snippetReflection, aWordTypes,
-                providers.getPlatformConfigurationProvider(), aMetaAccessExtensionProvider, providers.getLoopsDataProvider());
-        analysisName = getAnalysisName(options);
+                        providers.getForeignCalls(), providers.getLowerer(), providers.getReplacements(), aStampProvider, snippetReflection, aWordTypes,
+                        providers.getPlatformConfigurationProvider(), aMetaAccessExtensionProvider, providers.getLoopsDataProvider());
+        analysisName = getAnalysisName();
         bigbang = new StandalonePointsToAnalysis(options, aUniverse, aProviders, hotSpotHost, executor, () -> {
             /* do nothing */
         });
@@ -192,7 +193,7 @@ public final class PointsToAnalyzer {
         }
     }
 
-    private String getAnalysisName(OptionValues options) {
+    private String getAnalysisName() {
         String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
         String analysisEntryClassOptionName = PointstoOptions.AnalysisEntryClass.getName();
         String entryPointsFile = PointstoOptions.AnalysisEntryPointFile.getValue(options);
@@ -275,6 +276,7 @@ public final class PointsToAnalyzer {
         }
         onAnalysisExitAccess = new AnalysisFeatureImpl.OnAnalysisExitAccessImpl(analysisFeatureManager, analysisClassLoader, bigbang, debugContext);
         analysisFeatureManager.forEachFeature(feature -> feature.onAnalysisExit(onAnalysisExitAccess));
+        AnalysisReporter.printAnalysisReports("pointsto_" + analysisName, options, CommonOptions.reportsPath(options, "reports").toString(), bigbang);
         bigbang.getUnsupportedFeatures().report(bigbang);
         return exitCode;
     }
@@ -308,7 +310,6 @@ public final class PointsToAnalyzer {
      * Register analysis entry points.
      */
     public void registerEntryMethods() {
-        OptionValues options = bigbang.getOptions();
         if (mainEntryIsSet) {
             String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
             String optionName = PointstoOptions.AnalysisEntryClass.getName();

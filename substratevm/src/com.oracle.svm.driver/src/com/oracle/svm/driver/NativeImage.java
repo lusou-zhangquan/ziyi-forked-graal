@@ -210,7 +210,7 @@ public class NativeImage {
     final String oHModule = oH(SubstrateOptions.Module);
     final String oHClass = oH(SubstrateOptions.Class);
     final String oHName = oH(SubstrateOptions.Name);
-    final String oHPath = oH(SubstrateOptions.Path);
+    final String oHPath = oH(CommonOptions.Path);
     final String enableSharedLibraryFlag = oH + "+" + SubstrateOptions.SharedLibrary.getName();
     final String oHCLibraryPath = oH(SubstrateOptions.CLibraryPath);
     final String oHOptimize = oH(SubstrateOptions.Optimize);
