@@ -172,6 +172,7 @@ import com.oracle.graal.reachability.ReachabilityAnalysisFactory;
 import com.oracle.graal.reachability.ReachabilityMethodProcessingHandler;
 import com.oracle.graal.reachability.ReachabilityObjectScanner;
 import com.oracle.graal.reachability.SimpleInMemoryMethodSummaryProvider;
+import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.core.BuildArtifacts;
 import com.oracle.svm.core.BuildArtifacts.ArtifactType;
 import com.oracle.svm.core.BuildPhaseProvider;
@@ -1873,7 +1874,7 @@ public class NativeImageGenerator {
     }
 
     public static Path generatedFiles(OptionValues optionValues) {
-        String pathName = SubstrateOptions.Path.getValue(optionValues);
+        String pathName = CommonOptions.Path.getValue(optionValues);
         Path path = FileSystems.getDefault().getPath(pathName);
         if (!Files.exists(path)) {
             try {

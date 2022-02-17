@@ -68,6 +68,7 @@ import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.reports.ReportUtils;
 import com.oracle.graal.pointsto.util.Timer;
 import com.oracle.graal.pointsto.util.TimerCollection;
+import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.core.BuildArtifacts;
 import com.oracle.svm.core.BuildArtifacts.ArtifactType;
 import com.oracle.svm.core.OS;
@@ -648,7 +649,7 @@ public class ProgressReporter {
             return ReportUtils.report(description, file.getAbsoluteFile().toPath(), statsReporter, false);
         } else {
             String name = "image_build_statistics_" + ReportUtils.extractImageName(imageName);
-            String path = SubstrateOptions.Path.getValue() + File.separatorChar + "reports";
+            String path = CommonOptions.reportsPath(bb.getOptions(), "report").toString();
             return ReportUtils.report(description, path, name, "json", statsReporter, false);
         }
     }

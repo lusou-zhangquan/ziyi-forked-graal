@@ -56,6 +56,7 @@ import org.graalvm.nativeimage.Platforms;
 
 import com.oracle.svm.core.c.libc.LibCBase;
 import com.oracle.svm.core.c.libc.MuslLibC;
+import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.core.deopt.DeoptimizationSupport;
 import com.oracle.svm.core.heap.ReferenceHandler;
 import com.oracle.svm.core.option.APIOption;
@@ -284,9 +285,6 @@ public class SubstrateOptions {
 
     @Option(help = "Path passed to the linker as the -rpath (list of comma-separated directories)")//
     public static final HostedOptionKey<LocatableMultiOptionValue.Strings> LinkerRPath = new HostedOptionKey<>(LocatableMultiOptionValue.Strings.commaSeparated());
-
-    @Option(help = "Directory of the image file to be generated", type = OptionType.User)//
-    public static final HostedOptionKey<String> Path = new HostedOptionKey<>(null);
 
     public static final class GCGroup implements APIOptionGroup {
         @Override
@@ -664,7 +662,7 @@ public class SubstrateOptions {
 
     public static Path getDebugInfoSourceCacheRoot() {
         try {
-            return Paths.get(Path.getValue()).resolve(DebugInfoSourceCacheRoot.getValue());
+            return Paths.get(CommonOptions.Path.getValue(HostedOptionValues.singleton())).resolve(DebugInfoSourceCacheRoot.getValue());
         } catch (InvalidPathException ipe) {
             throw UserError.abort("Invalid path provided for option DebugInfoSourceCacheRoot %s", DebugInfoSourceCacheRoot.getValue());
         }
@@ -806,7 +804,7 @@ public class SubstrateOptions {
     public static final RuntimeOptionKey<String> FlightRecorderLogging = new RuntimeOptionKey<>("all=warning", Immutable);
 
     public static String reportsPath() {
-        return Paths.get(Paths.get(Path.getValue()).toString(), ImageSingletons.lookup(ReportingSupport.class).reportsPath).toAbsolutePath().toString();
+        return CommonOptions.reportsPath(HostedOptionValues.singleton(), ImageSingletons.lookup(ReportingSupport.class).reportsPath).toString();
     }
 
     public static class ReportingSupport {

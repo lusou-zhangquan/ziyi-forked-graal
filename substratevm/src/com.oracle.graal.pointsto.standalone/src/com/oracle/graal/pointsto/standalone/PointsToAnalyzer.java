@@ -66,6 +66,7 @@ import com.oracle.graal.pointsto.meta.PointsToAnalysisFactory;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureImpl;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureManager;
+import com.oracle.graal.pointsto.reports.AnalysisReporter;
 import com.oracle.graal.pointsto.standalone.heap.StandaloneImageHeapScanner;
 import com.oracle.graal.pointsto.standalone.meta.StandaloneConstantFieldProvider;
 import com.oracle.graal.pointsto.standalone.meta.StandaloneConstantReflectionProvider;
@@ -75,6 +76,7 @@ import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.graal.pointsto.util.GraalAccess;
 import com.oracle.graal.pointsto.util.PointsToOptionParser;
 import com.oracle.graal.pointsto.util.TimerCollection;
+import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
 
@@ -102,6 +104,7 @@ public final class PointsToAnalyzer {
         }
     }
 
+    private final OptionValues options;
     private final StandalonePointsToAnalysis bigbang;
     private final StandaloneAnalysisFeatureManager standaloneAnalysisFeatureManager;
     private final ClassLoader analysisClassLoader;
@@ -113,6 +116,7 @@ public final class PointsToAnalyzer {
 
     @SuppressWarnings("try")
     private PointsToAnalyzer(String mainEntryClass, OptionValues options) {
+        this.options = options;
         standaloneAnalysisFeatureManager = new StandaloneAnalysisFeatureManager(options);
         String appCP = StandaloneOptions.AnalysisTargetAppCP.getValue(options);
         if (appCP == null) {
@@ -151,7 +155,7 @@ public final class PointsToAnalyzer {
                         originalProviders.getForeignCalls(), originalProviders.getLowerer(), originalProviders.getReplacements(),
                         originalProviders.getStampProvider(), snippetReflection, new WordTypes(aMetaAccess, wordKind),
                         originalProviders.getPlatformConfigurationProvider(), aMetaAccessExtensionProvider, originalProviders.getLoopsDataProvider());
-        analysisName = getAnalysisName(mainEntryClass, options);
+        analysisName = getAnalysisName(mainEntryClass);
         bigbang = new StandalonePointsToAnalysis(options, aUniverse, aProviders, standaloneHost, executor, () -> {
             /* do nothing */
         }, new TimerCollection());
@@ -204,7 +208,7 @@ public final class PointsToAnalyzer {
         }
     }
 
-    private String getAnalysisName(String entryClass, OptionValues options) {
+    private String getAnalysisName(String entryClass) {
         String entryPointsFile = StandaloneOptions.AnalysisEntryPointsFile.getValue(options);
         String entryPointsFileOptionName = StandaloneOptions.AnalysisEntryPointsFile.getName();
         mainEntryIsSet = entryClass != null && !entryClass.isBlank();
@@ -285,6 +289,7 @@ public final class PointsToAnalyzer {
         }
         onAnalysisExitAccess = new StandaloneAnalysisFeatureImpl.OnAnalysisExitAccessImpl(standaloneAnalysisFeatureManager, analysisClassLoader, bigbang, debugContext);
         standaloneAnalysisFeatureManager.forEachFeature(feature -> feature.onAnalysisExit(onAnalysisExitAccess));
+        AnalysisReporter.printAnalysisReports("pointsto_" + analysisName, options, CommonOptions.reportsPath(options, "reports").toString(), bigbang);
         bigbang.getUnsupportedFeatures().report(bigbang);
         return exitCode;
     }
@@ -316,7 +321,6 @@ public final class PointsToAnalyzer {
      * Register analysis entry points.
      */
     public void registerEntryMethods() {
-        OptionValues options = bigbang.getOptions();
         if (mainEntryIsSet) {
             String entryClass = analysisName;
             try {
