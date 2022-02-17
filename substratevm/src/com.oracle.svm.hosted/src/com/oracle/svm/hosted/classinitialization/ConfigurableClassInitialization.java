@@ -28,7 +28,6 @@ import static com.oracle.svm.core.SubstrateOptions.TraceClassInitialization;
 import static com.oracle.svm.core.SubstrateOptions.TraceObjectInstantiation;
 
 import java.lang.reflect.Proxy;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -116,7 +115,7 @@ public class ConfigurableClassInitialization implements ClassInitializationSuppo
         if (configurationSealed && ClassInitializationOptions.PrintClassInitialization.getValue()) {
             List<ClassOrPackageConfig> allConfigs = classInitializationConfiguration.allConfigs();
             allConfigs.sort(Comparator.comparing(ClassOrPackageConfig::getName));
-            String path = Paths.get(Paths.get(SubstrateOptions.Path.getValue()).toString(), "reports").toAbsolutePath().toString();
+            String path = SubstrateOptions.reportsPath();
             ReportUtils.report("class initialization configuration", path, "class_initialization_configuration", "csv", writer -> {
                 writer.println("Class or Package Name, Initialization Kind, Reasons");
                 for (ClassOrPackageConfig config : allConfigs) {

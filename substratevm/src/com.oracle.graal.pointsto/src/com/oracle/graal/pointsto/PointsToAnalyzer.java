@@ -40,6 +40,7 @@ import com.oracle.graal.pointsto.meta.PointstoConstantFieldProvider;
 import com.oracle.graal.pointsto.meta.PointstoConstantReflectionProvider;
 import com.oracle.graal.pointsto.meta.PointstoStampProvider;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
+import com.oracle.graal.pointsto.reports.AnalysisReporter;
 import com.oracle.graal.pointsto.standalone.HotSpotHost;
 import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
 import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
@@ -49,6 +50,7 @@ import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.graal.pointsto.util.PointsToOptionParser;
 import com.oracle.graal.pointsto.util.Timer;
 import com.oracle.graal.pointsto.util.TimerCollection;
+import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
 import jdk.vm.ci.amd64.AMD64Kind;
@@ -102,6 +104,7 @@ public final class PointsToAnalyzer {
         }
     }
 
+    private OptionValues options;
     private final StandalonePointsToAnalysis bigbang;
     private AnalysisFeatureManager analysisFeatureManager;
     private ClassLoader analysisClassLoader;
@@ -113,6 +116,7 @@ public final class PointsToAnalyzer {
 
     @SuppressWarnings("try")
     private PointsToAnalyzer(OptionValues options) {
+        this.options = options;
         analysisFeatureManager = new AnalysisFeatureManager(options);
         String appCP = PointstoOptions.AnalysisTargetAppCP.getValue(options);
         if (appCP == null) {
@@ -153,7 +157,7 @@ public final class PointsToAnalyzer {
         HostedProviders aProviders = new HostedProviders(aMetaAccess, null, aConstantReflection, aConstantFieldProvider,
                         providers.getForeignCalls(), providers.getLowerer(), providers.getReplacements(), aStampProvider, snippetReflection, aWordTypes,
                         providers.getPlatformConfigurationProvider(), aMetaAccessExtensionProvider, providers.getLoopsDataProvider());
-        analysisName = getAnalysisName(options);
+        analysisName = getAnalysisName();
         bigbang = new StandalonePointsToAnalysis(options, aUniverse, aProviders, hotSpotHost, executor, () -> {
             /* do nothing */
         }, new TimerCollection(analysisName));
@@ -205,7 +209,7 @@ public final class PointsToAnalyzer {
         }
     }
 
-    private String getAnalysisName(OptionValues options) {
+    private String getAnalysisName() {
         String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
         String analysisEntryClassOptionName = PointstoOptions.AnalysisEntryClass.getName();
         String entryPointsFile = PointstoOptions.AnalysisEntryPointFile.getValue(options);
@@ -275,6 +279,7 @@ public final class PointsToAnalyzer {
         }
         onAnalysisExitAccess = new AnalysisFeatureImpl.OnAnalysisExitAccessImpl(analysisFeatureManager, analysisClassLoader, bigbang, debugContext);
         analysisFeatureManager.forEachFeature(feature -> feature.onAnalysisExit(onAnalysisExitAccess));
+        AnalysisReporter.printAnalysisReports("pointsto_" + analysisName, options, CommonOptions.reportsPath(options, "reports").toString(), bigbang);
         bigbang.getUnsupportedFeatures().report(bigbang);
         return exitCode;
     }
@@ -308,7 +313,6 @@ public final class PointsToAnalyzer {
      * Register analysis entry points.
      */
     public void registerEntryMethods() {
-        OptionValues options = bigbang.getOptions();
         if (mainEntryIsSet) {
             String entryClass = PointstoOptions.AnalysisEntryClass.getValue(options);
             String optionName = PointstoOptions.AnalysisEntryClass.getName();
