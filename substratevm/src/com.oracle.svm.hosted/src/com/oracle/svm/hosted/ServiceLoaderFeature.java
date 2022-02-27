@@ -24,17 +24,13 @@
  */
 package com.oracle.svm.hosted;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +49,7 @@ import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
 import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
+import com.oracle.svm.common.util.ResourceUtils;
 import com.oracle.svm.core.jdk.Resources;
 import com.oracle.svm.core.option.HostedOptionKey;
 import com.oracle.svm.core.option.LocatableMultiOptionValue;
@@ -64,11 +61,11 @@ import com.oracle.svm.hosted.analysis.Inflation;
 /**
  * Support for {@link ServiceLoader} on Substrate VM.
  *
- * Services are registered in the folder {@link #LOCATION_PREFIX "META-INF/services/"} using files
- * whose name is the fully qualified service interface name. We do not know which services are going
- * to be used by a native image: The parameter of {@link ServiceLoader#load} is often but not always
- * a compile-time constant that we can track. But we also cannot put all registered services into
- * the native image.
+ * Services are registered in the folder {@link ResourceUtils#SERVICE_LOCATION_PREFIX
+ * "META-INF/services/"} using files whose name is the fully qualified service interface name. We do
+ * not know which services are going to be used by a native image: The parameter of
+ * {@link ServiceLoader#load} is often but not always a compile-time constant that we can track. But
+ * we also cannot put all registered services into the native image.
  *
  * We therefore use the following heuristic: we add all service loader files and service
  * implementation classes when the service interfaces that are seen as reachable by the static
@@ -137,9 +134,6 @@ public class ServiceLoaderFeature implements InternalFeature {
     protected final Set<String> serviceProvidersToSkip = new HashSet<>(Arrays.asList(
                     "com.sun.jndi.rmi.registry.RegistryContextFactory"      // GR-26547
     ));
-
-    /** Copy of private field {@code ServiceLoader.PREFIX}. */
-    private static final String LOCATION_PREFIX = "META-INF/services/";
 
     /**
      * Set of types that are already processed (if they are a service interface) or are already
@@ -212,7 +206,7 @@ public class ServiceLoaderFeature implements InternalFeature {
         }
 
         String serviceClassName = type.toClassName();
-        String serviceResourceLocation = LOCATION_PREFIX + serviceClassName;
+        String serviceResourceLocation = ResourceUtils.getServiceResourceLocation(serviceClassName);
 
         if (servicesToSkip.contains(serviceClassName)) {
             if (trace) {
@@ -241,7 +235,7 @@ public class ServiceLoaderFeature implements InternalFeature {
         while (resourceURLs.hasMoreElements()) {
             URL resourceURL = resourceURLs.nextElement();
             try {
-                implementationClassNames.addAll(parseServiceResource(resourceURL));
+                implementationClassNames.addAll(ResourceUtils.parseServiceResource(resourceURL));
             } catch (IOException ex) {
                 throw UserError.abort(ex, "Error loading service implementations for service `%s` from URL `%s`", serviceClassName, resourceURL);
             }
@@ -365,35 +359,5 @@ public class ServiceLoaderFeature implements InternalFeature {
         /* Ensure that the static analysis runs again for the new implementation classes. */
         access.requireAnalysisIteration();
         return true;
-    }
-
-    /**
-     * Parse a service configuration file. This code is inspired by the private implementation
-     * methods of {@link ServiceLoader}.
-     */
-    private static Collection<String> parseServiceResource(URL resourceURL) throws IOException {
-        Collection<String> result = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceURL.openStream(), "utf-8"))) {
-            while (true) {
-                String line = reader.readLine();
-                if (line == null) {
-                    break;
-                }
-
-                int commentIndex = line.indexOf('#');
-                if (commentIndex >= 0) {
-                    line = line.substring(0, commentIndex);
-                }
-                line = line.trim();
-                if (line.length() != 0) {
-                    /*
-                     * We do not need to do further sanity checks on the class name. If the name is
-                     * illegal, then we will not be able to load the class and report an error.
-                     */
-                    result.add(line);
-                }
-            }
-        }
-        return result;
     }
 }

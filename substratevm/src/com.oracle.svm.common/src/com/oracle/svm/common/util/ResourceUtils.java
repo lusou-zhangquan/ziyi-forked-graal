@@ -26,10 +26,63 @@
 
 package com.oracle.svm.common.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.module.ModuleDescriptor;
+import java.lang.module.ModuleFinder;
+import java.lang.module.ModuleReference;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.IllformedLocaleException;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ResourceUtils {
+    /** Copy of private field {@code ServiceLoader.PREFIX}. */
+    public static final String SERVICE_LOCATION_PREFIX = "META-INF/services/";
+
+    public static String getServiceResourceLocation(String serviceClassName) {
+        return SERVICE_LOCATION_PREFIX + serviceClassName;
+    }
+
+    /**
+     * Parse a service configuration file. This code is inspired by the private implementation
+     * methods of {@link ServiceLoader}.
+     */
+    public static Collection<String> parseServiceResource(URL resourceURL) throws IOException {
+        Collection<String> result = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceURL.openStream(), "utf-8"))) {
+            while (true) {
+                String line = reader.readLine();
+                if (line == null) {
+                    break;
+                }
+
+                int commentIndex = line.indexOf('#');
+                if (commentIndex >= 0) {
+                    line = line.substring(0, commentIndex);
+                }
+                line = line.trim();
+                if (line.length() != 0) {
+                    /*
+                     * We do not need to do further sanity checks on the class name. If the name is
+                     * illegal, then we will not be able to load the class and report an error.
+                     */
+                    result.add(line);
+                }
+            }
+        }
+        return result;
+    }
+
     /**
      * @return locale for given tag or null for invalid ones
      */
@@ -51,5 +104,32 @@ public class ResourceUtils {
                     return null;
             }
         }
+    }
+
+    public static Map<String, List<String>> lookupServiceProvidersFromModule(List<Path> applicationClassPath) {
+        return loadAllModules(applicationClassPath)
+                        .flatMap(module -> module.provides().stream())
+                        .collect(Collectors.toMap(ModuleDescriptor.Provides::service, ModuleDescriptor.Provides::providers, (left, right) -> {
+                            ArrayList<String> list = new ArrayList<>(left);
+                            list.addAll(right);
+                            return list;
+                        }));
+    }
+
+    /**
+     * Combines boot layer modules and application modules.
+     *
+     * @return stream of all module descriptors that were discovered
+     */
+    public static Stream<ModuleDescriptor> loadAllModules(List<Path> applicationModulePath) {
+        ModuleFinder finder = ModuleFinder.of(applicationModulePath.toArray(new Path[0]));
+        Stream<ModuleDescriptor> applicationModules = finder.findAll().stream()
+                        .map(ModuleReference::descriptor);
+        Stream<ModuleDescriptor> bootLayerModules = ModuleLayer.boot()
+                        .modules()
+                        .stream()
+                        .map(Module::getDescriptor);
+        return Stream.concat(bootLayerModules, applicationModules)
+                        .filter(Objects::nonNull);
     }
 }

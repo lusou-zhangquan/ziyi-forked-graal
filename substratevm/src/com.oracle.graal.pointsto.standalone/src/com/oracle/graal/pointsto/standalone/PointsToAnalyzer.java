@@ -26,28 +26,6 @@
 
 package com.oracle.graal.pointsto.standalone;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ForkJoinPool;
-
-import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
-import org.graalvm.compiler.debug.DebugContext;
-import org.graalvm.compiler.debug.Indent;
-import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderConfiguration;
-import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins;
-import org.graalvm.compiler.options.OptionValues;
-import org.graalvm.compiler.phases.util.Providers;
-import org.graalvm.compiler.printer.GraalDebugHandlersFactory;
-import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
-import org.graalvm.compiler.word.WordTypes;
-import org.graalvm.nativeimage.hosted.Feature;
-
 import com.oracle.graal.pointsto.AnalysisObjectScanningObserver;
 import com.oracle.graal.pointsto.AnalysisPolicy;
 import com.oracle.graal.pointsto.PointsToAnalysis;
@@ -64,9 +42,10 @@ import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.graal.pointsto.meta.PointsToAnalysisFactory;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
 import com.oracle.graal.pointsto.phases.PointsToMethodHandlePlugin;
+import com.oracle.graal.pointsto.reports.AnalysisReporter;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureImpl;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureManager;
-import com.oracle.graal.pointsto.reports.AnalysisReporter;
+import com.oracle.graal.pointsto.standalone.features.StandaloneServiceLoaderFeature;
 import com.oracle.graal.pointsto.standalone.heap.StandaloneImageHeapScanner;
 import com.oracle.graal.pointsto.standalone.meta.StandaloneConstantFieldProvider;
 import com.oracle.graal.pointsto.standalone.meta.StandaloneConstantReflectionProvider;
@@ -81,11 +60,32 @@ import com.oracle.graal.pointsto.util.TimerCollection;
 import com.oracle.svm.common.option.CommonOptions;
 import com.oracle.svm.util.ModuleSupport;
 import com.oracle.svm.util.ReflectionUtil;
-
 import jdk.vm.ci.amd64.AMD64Kind;
 import jdk.vm.ci.hotspot.HotSpotJVMCIRuntime;
 import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.MetaAccessProvider;
+import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
+import org.graalvm.compiler.debug.DebugContext;
+import org.graalvm.compiler.debug.Indent;
+import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderConfiguration;
+import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins;
+import org.graalvm.compiler.options.OptionValues;
+import org.graalvm.compiler.phases.util.Providers;
+import org.graalvm.compiler.printer.GraalDebugHandlersFactory;
+import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
+import org.graalvm.compiler.word.WordTypes;
+import org.graalvm.nativeimage.hosted.Feature;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 import static org.graalvm.compiler.replacements.StandardGraphBuilderPlugins.registerInvocationPlugins;
 
@@ -121,21 +121,13 @@ public final class PointsToAnalyzer {
         this.options = options;
         standaloneAnalysisFeatureManager = new StandaloneAnalysisFeatureManager(options);
         String appCP = StandaloneOptions.AnalysisTargetAppCP.getValue(options);
-        if (appCP == null) {
-            AnalysisError.shouldNotReachHere("Must specify analysis target application's classpath with -H:" + StandaloneOptions.AnalysisTargetAppCP.getName());
+        String appMP = StandaloneOptions.AnalysisTargetAppModulePath.getValue(options);
+        if (appCP == null && appMP == null) {
+            AnalysisError.shouldNotReachHere(
+                            "Must specify analysis target application's classpath with -H:" + StandaloneOptions.AnalysisTargetAppCP.getName() +
+                                            " or modulepath with -H:" + StandaloneOptions.AnalysisTargetAppModulePath.getName());
         }
-        List<URL> urls = new ArrayList<>();
-        for (String cp : appCP.split(File.pathSeparator)) {
-            try {
-                File file = new File(cp);
-                if (file.exists()) {
-                    urls.add(file.toURI().toURL());
-                }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-        }
-        standaloneAnalysisClassLoader = new StandaloneAnalysisClassLoader(urls.toArray(new URL[0]), ClassLoader.getPlatformClassLoader());
+        standaloneAnalysisClassLoader = new StandaloneAnalysisClassLoader(extractClassPath(appCP), extractClassPath(appMP), ClassLoader.getPlatformClassLoader());
         Providers originalProviders = GraalAccess.getOriginalProviders();
         SnippetReflectionProvider snippetReflection = originalProviders.getSnippetReflection();
         MetaAccessProvider originalMetaAccess = originalProviders.getMetaAccess();
@@ -246,6 +238,13 @@ public final class PointsToAnalyzer {
         }
     }
 
+    private static List<String> extractClassPath(String paths) {
+        return paths == null ? Collections.emptyList()
+                        : Arrays.stream(paths.split(File.pathSeparator))
+                                        .filter(cp -> new File(cp).exists())
+                                        .collect(Collectors.toList());
+    }
+
     private static int getWordSize() {
         int wordSize;
         String archModel = System.getProperty("sun.arch.data.model");
@@ -330,6 +329,7 @@ public final class PointsToAnalyzer {
     private void registerFeatures() {
         standaloneAnalysisFeatureManager.registerFeaturesFromOptions();
         standaloneAnalysisFeatureManager.registerFeature(StandaloneReflectionFeature.class);
+        standaloneAnalysisFeatureManager.registerFeature(StandaloneServiceLoaderFeature.class);
         // Register DashboardDump feature by default, user can enable the feature by setting
         // -H:+DumpAnalysisReports
         standaloneAnalysisFeatureManager.registerFeature("com.oracle.graal.pointsto.standalone.features.DashboardDumpDelegate$Feature");
