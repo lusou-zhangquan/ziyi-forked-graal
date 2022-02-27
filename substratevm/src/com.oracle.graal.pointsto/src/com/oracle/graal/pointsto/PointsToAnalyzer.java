@@ -49,6 +49,7 @@ import com.oracle.graal.pointsto.standalone.StandalonePointsToAnalysis;
 import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl;
 import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureManager;
 import com.oracle.graal.pointsto.standalone.features.PointstoClassInitializationFeature;
+import com.oracle.graal.pointsto.standalone.features.PointstoServiceLoaderFeature;
 import com.oracle.graal.pointsto.standalone.reflect.PointstoReflectionFeature;
 import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.graal.pointsto.util.PointsToOptionParser;
@@ -327,6 +328,7 @@ public final class PointsToAnalyzer {
         analysisFeatureManager.registerFeaturesFromOptions();
         analysisFeatureManager.registerFeature(PointstoClassInitializationFeature.class);
         analysisFeatureManager.registerFeature(PointstoReflectionFeature.class);
+        analysisFeatureManager.registerFeature(PointstoServiceLoaderFeature.class);
         // Register DashboardDump feature by default, user can enable the feature by setting
         // -H:+DumpAnalysisReports
         analysisFeatureManager.registerFeature("com.oracle.graal.pointsto.standalone.features.DashboardDumpDelegate$Feature");

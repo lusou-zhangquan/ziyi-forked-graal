@@ -26,10 +26,54 @@
 
 package com.oracle.svm.common.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.IllformedLocaleException;
 import java.util.Locale;
+import java.util.ServiceLoader;
 
 public class ResourceUtils {
+    /** Copy of private field {@code ServiceLoader.PREFIX}. */
+    public static final String SERVICE_LOCATION_PREFIX = "META-INF/services/";
+
+    public static String getServiceResourceLocation(String serviceClassName) {
+        return SERVICE_LOCATION_PREFIX + serviceClassName;
+    }
+
+    /**
+     * Parse a service configuration file. This code is inspired by the private implementation
+     * methods of {@link ServiceLoader}.
+     */
+    public static Collection<String> parseServiceResource(URL resourceURL) throws IOException {
+        Collection<String> result = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceURL.openStream(), "utf-8"))) {
+            while (true) {
+                String line = reader.readLine();
+                if (line == null) {
+                    break;
+                }
+
+                int commentIndex = line.indexOf('#');
+                if (commentIndex >= 0) {
+                    line = line.substring(0, commentIndex);
+                }
+                line = line.trim();
+                if (line.length() != 0) {
+                    /*
+                     * We do not need to do further sanity checks on the class name. If the name is
+                     * illegal, then we will not be able to load the class and report an error.
+                     */
+                    result.add(line);
+                }
+            }
+        }
+        return result;
+    }
+
     /**
      * @return locale for given tag or null for invalid ones
      */

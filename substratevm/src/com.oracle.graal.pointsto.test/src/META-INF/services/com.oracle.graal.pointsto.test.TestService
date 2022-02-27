@@ -1,0 +1,2 @@
+com.oracle.graal.pointsto.test.TestServiceImpl
+# com.oracle.graal.pointsto.test.UnreachableTestServiceImpl
