@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.MapCursor;
@@ -85,6 +86,9 @@ public abstract class ImageHeapScanner {
     protected final SnippetReflectionProvider hostedSnippetReflection;
 
     protected ObjectScanningObserver scanningObserver;
+
+    protected Predicate<JavaConstant> shouldScanConstant;
+    protected Predicate<AnalysisField> shouldScanField;
 
     public ImageHeapScanner(ImageHeap heap, AnalysisMetaAccess aMetaAccess, SnippetReflectionProvider aSnippetReflection,
                     ConstantReflectionProvider aConstantReflection, ObjectScanningObserver aScanningObserver) {
@@ -616,5 +620,13 @@ public abstract class ImageHeapScanner {
 
     public void postTask(Runnable task) {
         ((PointsToAnalysis) universe.getBigbang()).postTask(debug -> task.run());
+    }
+
+    public Predicate<JavaConstant> getShouldScanConstant() {
+        return shouldScanConstant;
+    }
+
+    public Predicate<AnalysisField> getShouldScanField() {
+        return shouldScanField;
     }
 }

@@ -81,6 +81,8 @@ public class HeapSnapshotVerifier {
         iterations++;
         scannedObjects.reset();
         ObjectScanner objectScanner = new ObjectScanner(bb, executor, scannedObjects, new ScanningObserver());
+        objectScanner.setShouldScanConstant(scanner.getShouldScanConstant());
+        objectScanner.setShouldScanField(scanner.getShouldScanField());
         executor.start();
         scanTypes(objectScanner);
         objectScanner.scanBootImageHeapRoots();
