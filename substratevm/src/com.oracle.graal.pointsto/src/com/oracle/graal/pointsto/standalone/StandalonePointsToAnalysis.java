@@ -26,18 +26,26 @@
 
 package com.oracle.graal.pointsto.standalone;
 
+import com.oracle.graal.pointsto.ObjectScanner;
 import com.oracle.graal.pointsto.PointsToAnalysis;
 import com.oracle.graal.pointsto.api.HostVM;
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatures;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.meta.HostedProviders;
+import com.oracle.graal.pointsto.util.AnalysisError;
+import com.oracle.svm.util.ReflectionUtil;
 import org.graalvm.compiler.options.OptionValues;
+import org.graalvm.compiler.serviceprovider.JavaVersionUtil;
 
 import java.util.concurrent.ForkJoinPool;
 
 public class StandalonePointsToAnalysis extends PointsToAnalysis {
+
+    private final ClassLoader classLoader;
+
     public StandalonePointsToAnalysis(OptionValues options, AnalysisUniverse universe, HostedProviders providers, HostVM hostVM, ForkJoinPool executorService, Runnable heartbeatCallback) {
         super(options, universe, providers, hostVM, executorService, heartbeatCallback, new UnsupportedFeatures(), true);
+        classLoader = ((HotSpotHost) hostVM).getClassLoader();
     }
 
     @Override
@@ -48,5 +56,39 @@ public class StandalonePointsToAnalysis extends PointsToAnalysis {
         });
         universe.getMethods().clear();
         universe.getFields().clear();
+    }
+
+    @Override
+    protected ObjectScanner createObjectScanner(boolean isParallel) {
+        ObjectScanner objectScanner = super.createObjectScanner(isParallel);
+        objectScanner.setShouldScanField(field -> isClassLoaderAllowed(field.getDeclaringClass().getJavaClass().getClassLoader()));
+        objectScanner.setShouldScanConstant(constant -> isClassLoaderAllowed(metaAccess.lookupJavaType(constant).getJavaClass().getClassLoader()));
+        return objectScanner;
+    }
+
+    /**
+     * We only allow scanning analysis target classes which are loaded by platformClassloader(e.g.
+     * the JDK classes) or the classloader dedicated for analysis targets.
+     */
+    private boolean isClassLoaderAllowed(ClassLoader cl) {
+        ClassLoader systemClassLoader = getSystemClassLoader();
+        if (systemClassLoader == null) {
+            return cl == null || this.classLoader.equals(cl);
+        } else {
+            return systemClassLoader.equals(cl) || this.classLoader.equals(cl);
+        }
+    }
+
+    public static ClassLoader getSystemClassLoader() {
+        if (JavaVersionUtil.JAVA_SPEC <= 8) {
+            return null;
+        } else {
+            try {
+                Class<?> classloadersClass = Class.forName("jdk.internal.loader.ClassLoaders");
+                return (ClassLoader) ReflectionUtil.lookupField(classloadersClass, "PLATFORM_LOADER").get(null);
+            } catch (ReflectiveOperationException e) {
+                throw AnalysisError.shouldNotReachHere(e);
+            }
+        }
     }
 }

@@ -674,7 +674,7 @@ public abstract class PointsToAnalysis implements BigBang {
         scannedObjects.reset();
         // scan constants
         boolean isParallel = PointstoOptions.ScanObjectsParallel.getValue(options);
-        ObjectScanner objectScanner = new AnalysisObjectScanner(this, isParallel ? executor : null, scannedObjects);
+        ObjectScanner objectScanner = createObjectScanner(isParallel);
         checkObjectGraph(objectScanner);
         if (isParallel) {
             executor.start();
@@ -685,6 +685,10 @@ public abstract class PointsToAnalysis implements BigBang {
         } else {
             objectScanner.scanBootImageHeapRoots(null, null);
         }
+    }
+
+    protected ObjectScanner createObjectScanner(boolean isParallel) {
+        return new AnalysisObjectScanner(this, isParallel ? executor : null, scannedObjects);
     }
 
     @Override

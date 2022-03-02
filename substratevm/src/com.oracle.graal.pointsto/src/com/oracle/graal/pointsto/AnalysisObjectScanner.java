@@ -58,6 +58,9 @@ public class AnalysisObjectScanner extends ObjectScanner {
 
     @Override
     public void forNonNullFieldValue(JavaConstant receiver, AnalysisField field, JavaConstant fieldValue) {
+        if (!shouldScanConstant.test(fieldValue)) {
+            return;
+        }
         PointsToAnalysis analysis = getAnalysis();
         AnalysisType fieldType = analysis.getMetaAccess().lookupJavaType(analysis.getSnippetReflectionProvider().asObject(Object.class, fieldValue).getClass());
         assert fieldType.isInstantiated() : fieldType;
@@ -101,6 +104,9 @@ public class AnalysisObjectScanner extends ObjectScanner {
 
     @Override
     public void forNonNullArrayElement(JavaConstant array, AnalysisType arrayType, JavaConstant elementConstant, AnalysisType elementType, int elementIndex) {
+        if (!shouldScanConstant.test(elementConstant)) {
+            return;
+        }
         assert elementType.isInstantiated() : elementType;
         ArrayElementsTypeFlow arrayObjElementsFlow = getArrayElementsFlow(array, arrayType);
         PointsToAnalysis analysis = getAnalysis();

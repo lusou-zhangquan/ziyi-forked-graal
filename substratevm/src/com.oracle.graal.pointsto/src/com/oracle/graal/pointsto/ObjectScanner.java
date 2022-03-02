@@ -33,6 +33,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import org.graalvm.word.WordBase;
 
@@ -60,6 +61,16 @@ public abstract class ObjectScanner {
     private final ReusableSet scannedObjects;
     private final CompletionExecutor executor;
     private final Deque<WorklistEntry> worklist;
+    protected Predicate<JavaConstant> shouldScanConstant;
+    protected Predicate<AnalysisField> shouldScanField;
+
+    public void setShouldScanConstant(Predicate<JavaConstant> shouldScanConstant) {
+        this.shouldScanConstant = shouldScanConstant;
+    }
+
+    public void setShouldScanField(Predicate<AnalysisField> shouldScanField) {
+        this.shouldScanField = shouldScanField;
+    }
 
     public ObjectScanner(BigBang bb, CompletionExecutor executor, ReusableSet scannedObjects) {
         this.bb = bb;
@@ -71,6 +82,8 @@ public abstract class ObjectScanner {
             this.worklist = new ConcurrentLinkedDeque<>();
         }
         this.scannedObjects = scannedObjects;
+        shouldScanConstant = constant -> true;
+        shouldScanField = field -> true;
     }
 
     public void scanBootImageHeapRoots(Comparator<AnalysisField> fieldComparator, Comparator<BytecodePosition> embeddedRootComparator) {
@@ -109,6 +122,9 @@ public abstract class ObjectScanner {
     }
 
     private void scanEmbeddedRoot(JavaConstant root, BytecodePosition position) {
+        if (!shouldScanConstant.test(root)) {
+            return;
+        }
         AnalysisMethod method = (AnalysisMethod) position.getMethod();
         try {
             scanConstant(root, new MethodScan(method, position));
@@ -155,6 +171,9 @@ public abstract class ObjectScanner {
      * @param previous reference to the work list entry containing parent object
      */
     protected final void scanField(AnalysisField field, JavaConstant receiver, WorklistEntry previous) {
+        if (!shouldScanField.test(field)) {
+            return;
+        }
         ScanReason reason = new FieldScan(field);
         try {
             JavaConstant fieldValue = bb.getConstantReflectionProvider().readFieldValue(field, receiver);
@@ -241,6 +260,9 @@ public abstract class ObjectScanner {
     }
 
     public final void scanConstant(JavaConstant value, ScanReason reason, WorklistEntry previous) {
+        if (!shouldScanConstant.test(value)) {
+            return;
+        }
         Object valueObj = constantAsObject(bb, value);
         if (valueObj == null || valueObj instanceof WordBase) {
             return;

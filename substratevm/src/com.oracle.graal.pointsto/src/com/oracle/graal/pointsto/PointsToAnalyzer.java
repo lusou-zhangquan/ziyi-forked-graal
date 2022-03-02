@@ -134,7 +134,7 @@ public final class PointsToAnalyzer {
                 e.printStackTrace();
             }
         }
-        analysisClassLoader = new URLClassLoader(urls.toArray(new URL[0]), getSystemClassLoader());
+        analysisClassLoader = new URLClassLoader(urls.toArray(new URL[0]), StandalonePointsToAnalysis.getSystemClassLoader());
         Providers providers = getGraalCapability(RuntimeProvider.class).getHostBackend().getProviders();
         SnippetReflectionProvider snippetReflection = getGraalCapability(SnippetReflectionProvider.class);
         MetaAccessProvider originalMetaAccess = providers.getMetaAccess();
@@ -177,10 +177,24 @@ public final class PointsToAnalyzer {
             bigbang.addRootClass(byte[].class, false, false).registerAsInHeap();
             bigbang.addRootClass(byte[][].class, false, false).registerAsInHeap();
             bigbang.addRootClass(Object[].class, false, false).registerAsInHeap();
-            try {
-                bigbang.addRootMethod(Object.class.getDeclaredMethod("getClass"));
-            } catch (NoSuchMethodException ex) {
-                throw new RuntimeException(ex);
+
+            bigbang.addRootMethod(ReflectionUtil.lookupMethod(Object.class, "getClass"));
+
+            for (JavaKind kind : JavaKind.values()) {
+                if (kind.isPrimitive() && kind != JavaKind.Void) {
+                    bigbang.addRootClass(kind.toJavaClass(), false, true);
+                    bigbang.addRootField(kind.toBoxedJavaClass(), "value");
+                    bigbang.addRootMethod(ReflectionUtil.lookupMethod(kind.toBoxedJavaClass(), "valueOf", kind.toJavaClass()));
+                    bigbang.addRootMethod(ReflectionUtil.lookupMethod(kind.toBoxedJavaClass(), kind.getJavaName() + "Value"));
+                    /*
+                     * Register the cache location as reachable.
+                     * BoxingSnippets$Templates#getCacheLocation accesses the cache field.
+                     */
+                    Class<?>[] innerClasses = kind.toBoxedJavaClass().getDeclaredClasses();
+                    if (innerClasses != null && innerClasses.length > 0) {
+                        bigbang.getMetaAccess().lookupJavaType(innerClasses[0]).registerAsReachable();
+                    }
+                }
             }
             bigbang.getMetaAccess().lookupJavaType(JavaKind.Void.toJavaClass()).registerAsReachable();
             GraphBuilderConfiguration.Plugins plugins = new GraphBuilderConfiguration.Plugins(new InvocationPlugins());
@@ -209,19 +223,6 @@ public final class PointsToAnalyzer {
         } else {
             Path entryFilePath = Paths.get(entryPointsFile);
             return entryFilePath.getFileName().toString();
-        }
-    }
-
-    private static ClassLoader getSystemClassLoader(){
-        if(JavaVersionUtil.JAVA_SPEC <= 8){
-            return null;
-        }else {
-            try {
-                Class<?> classloadersClass = Class.forName("jdk.internal.loader.ClassLoaders");
-                return (ClassLoader) ReflectionUtil.lookupField(classloadersClass, "PLATFORM_LOADER").get(null);
-            }catch (ReflectiveOperationException e){
-                throw AnalysisError.shouldNotReachHere(e);
-            }
         }
     }
 

@@ -98,4 +98,8 @@ public class HotSpotHost extends SharedHostVM {
                                                               IntrinsicContext initialIntrinsicContext) {
         return new PointsToGraphBuilderPhase(providers, graphBuilderConfig, optimisticOpts, initialIntrinsicContext);
     }
+
+    public ClassLoader getClassLoader(){
+        return classLoader;
+    }
 }
