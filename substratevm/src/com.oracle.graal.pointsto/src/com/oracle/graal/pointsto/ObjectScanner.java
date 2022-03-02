@@ -33,6 +33,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import org.graalvm.word.WordBase;
 
@@ -67,6 +68,16 @@ public class ObjectScanner {
     private final CompletionExecutor executor;
     private final Deque<WorklistEntry> worklist;
     private final ObjectScanningObserver scanningObserver;
+    private Predicate<JavaConstant> shouldScanConstant = c -> true; // always true by default
+    private Predicate<AnalysisField> shouldScanField = c -> true;   // always true by default
+
+    public void setShouldScanConstant(Predicate<JavaConstant> shouldScanConstant) {
+        this.shouldScanConstant = shouldScanConstant;
+    }
+
+    public void setShouldScanField(Predicate<AnalysisField> shouldScanField) {
+        this.shouldScanField = shouldScanField;
+    }
 
     public ObjectScanner(BigBang bb, ObjectScanningObserver scanningObserver) {
         this(bb, null, new ObjectScanner.ReusableSet(), scanningObserver);
@@ -129,6 +140,9 @@ public class ObjectScanner {
     }
 
     private void scanEmbeddedRoot(JavaConstant root, BytecodePosition position) {
+        if (!shouldScanConstant.test(root)) {
+            return;
+        }
         try {
             EmbeddedRootScan reason = new EmbeddedRootScan(position, root);
             scanningObserver.forEmbeddedRoot(root, reason);
@@ -155,6 +169,9 @@ public class ObjectScanner {
      * @param receiver the receiver object
      */
     protected final void scanField(AnalysisField field, JavaConstant receiver, ScanReason prevReason) {
+        if (!shouldScanField.test(field)) {
+            return;
+        }
         ScanReason reason = new FieldScan(field, receiver, prevReason);
         try {
             if (!bb.getUniverse().getHeapScanner().isValueAvailable(field)) {
@@ -243,6 +260,9 @@ public class ObjectScanner {
     }
 
     public final void scanConstant(JavaConstant value, ScanReason reason) {
+        if (!shouldScanConstant.test(value)) {
+            return;
+        }
         if (value.isNull() || bb.getMetaAccess().isInstanceOf(value, WordBase.class)) {
             return;
         }
