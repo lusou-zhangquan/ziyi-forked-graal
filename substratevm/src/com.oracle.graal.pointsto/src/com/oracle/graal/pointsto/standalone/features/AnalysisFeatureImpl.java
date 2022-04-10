@@ -39,7 +39,12 @@ import org.graalvm.nativeimage.hosted.Feature;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -94,10 +99,26 @@ public class AnalysisFeatureImpl {
     abstract static class AnalysisAccessBase extends FeatureAccessImpl {
 
         protected final BigBang bb;
+        protected final List<Path> analysisTargetClassPath;
 
         AnalysisAccessBase(AnalysisFeatureManager featureManager, ClassLoader imageClassLoader, BigBang bb, DebugContext debugContext) {
             super(featureManager, imageClassLoader, debugContext);
             this.bb = bb;
+            if (imageClassLoader instanceof URLClassLoader) {
+                analysisTargetClassPath = Arrays.stream(((URLClassLoader) imageClassLoader).getURLs())
+                        .map(AnalysisAccessBase::urlToPath)
+                        .collect(Collectors.toUnmodifiableList());
+            } else {
+                analysisTargetClassPath = null;
+            }
+        }
+
+        private static Path urlToPath(URL url) {
+            try {
+                return Paths.get(url.toURI());
+            } catch (URISyntaxException e) {
+                throw new RuntimeException();
+            }
         }
 
         public BigBang getBigBang() {
@@ -154,6 +175,10 @@ public class AnalysisFeatureImpl {
 
         Set<AnalysisMethod> reachableMethodOverrides(AnalysisMethod baseMethod) {
             return AnalysisUniverse.getMethodImplementations(baseMethod, true);
+        }
+
+        public List<Path> getAnalysisTargetClassPath() {
+            return analysisTargetClassPath;
         }
     }
 

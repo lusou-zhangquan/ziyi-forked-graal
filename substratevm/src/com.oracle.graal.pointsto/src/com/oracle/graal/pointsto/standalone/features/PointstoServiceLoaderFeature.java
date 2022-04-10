@@ -30,30 +30,59 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.graalvm.compiler.options.Option;
+import org.graalvm.compiler.options.OptionKey;
+import org.graalvm.compiler.options.OptionType;
 import org.graalvm.nativeimage.hosted.Feature;
 
 import com.oracle.graal.pointsto.constraints.UnsupportedFeatureException;
 import com.oracle.graal.pointsto.meta.AnalysisType;
+import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl.BeforeAnalysisAccessImpl;
 import com.oracle.graal.pointsto.standalone.features.AnalysisFeatureImpl.DuringAnalysisAccessImpl;
 import com.oracle.graal.pointsto.util.AnalysisError;
 import com.oracle.svm.common.util.ResourceUtils;
 
 public class PointstoServiceLoaderFeature implements Feature {
+    public static class Options {
+        // @formatter:off
+        @Option(help = "Register services in standalone pointsto analysis", type = OptionType.User)
+        public static final OptionKey<Boolean> AnalysisRegisterServices = new OptionKey<>(true);
+        // @formatter:on
+    }
+
     /**
      * Set of types that are already processed (if they are a service interface) or are already
      * known to be not a service interface.
      */
     private final Map<AnalysisType, Boolean> processedTypes = new ConcurrentHashMap<>();
 
+    /**
+     * Known services and their providers declared using modules.
+     */
+    private Map<String, List<String>> serviceProviders;
+
+    @Override
+    public void beforeAnalysis(BeforeAnalysisAccess a) {
+        BeforeAnalysisAccessImpl access = (BeforeAnalysisAccessImpl) a;
+        if (!Options.AnalysisRegisterServices.getValue(access.getBigBang().getOptions())) {
+            return;
+        }
+        serviceProviders = ResourceUtils.lookupServiceProvidersFromModule(access.getAnalysisTargetClassPath());
+    }
+
     @SuppressWarnings("try")
     @Override
     public void duringAnalysis(DuringAnalysisAccess a) {
         DuringAnalysisAccessImpl access = (DuringAnalysisAccessImpl) a;
+        if (!Options.AnalysisRegisterServices.getValue(access.getBigBang().getOptions())) {
+            return;
+        }
         access.getUniverse().getTypes().forEach(type -> handleType(type, access));
     }
 
@@ -87,6 +116,11 @@ public class PointstoServiceLoaderFeature implements Feature {
                 throw AnalysisError.interruptAnalysis("Error loading service implementations for service " +
                                 serviceClassName + " from URL " + resourceURL, ex);
             }
+        }
+
+        List<String> providers = serviceProviders.get(serviceClassName);
+        if (providers != null) {
+            implementationClassNames.addAll(providers);
         }
 
         if (implementationClassNames.size() == 0) {

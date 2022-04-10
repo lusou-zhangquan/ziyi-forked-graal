@@ -29,12 +29,21 @@ package com.oracle.svm.common.util;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.module.ModuleDescriptor;
+import java.lang.module.ModuleFinder;
+import java.lang.module.ModuleReference;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IllformedLocaleException;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ResourceUtils {
     /** Copy of private field {@code ServiceLoader.PREFIX}. */
@@ -94,5 +103,32 @@ public class ResourceUtils {
                     return null;
             }
         }
+    }
+
+    public static Map<String, List<String>> lookupServiceProvidersFromModule(List<Path> applicationClassPath) {
+        return loadAllModules(applicationClassPath)
+                        .flatMap(module -> module.provides().stream())
+                        .collect(Collectors.toMap(ModuleDescriptor.Provides::service, ModuleDescriptor.Provides::providers, (left, right) -> {
+                            ArrayList<String> list = new ArrayList<>(left);
+                            list.addAll(right);
+                            return list;
+                        }));
+    }
+
+    /**
+     * Combines boot layer modules and application modules.
+     *
+     * @return stream of all module descriptors that were discovered
+     */
+    public static Stream<ModuleDescriptor> loadAllModules(List<Path> applicationModulePath) {
+        ModuleFinder finder = ModuleFinder.of(applicationModulePath.toArray(new Path[0]));
+        Stream<ModuleDescriptor> applicationModules = finder.findAll().stream()
+                        .map(ModuleReference::descriptor);
+        Stream<ModuleDescriptor> bootLayerModules = ModuleLayer.boot()
+                        .modules()
+                        .stream()
+                        .map(Module::getDescriptor);
+        return Stream.concat(bootLayerModules, applicationModules)
+                        .filter(Objects::nonNull);
     }
 }
