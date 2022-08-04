@@ -1609,6 +1609,7 @@ suite = {
                     "com.oracle.svm.util                   to org.graalvm.nativeimage.pointsto,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.llvm,org.graalvm.nativeimage.agent.jvmtibase,org.graalvm.nativeimage.agent.tracing,org.graalvm.nativeimage.agent.diagnostics,org.graalvm.nativeimage.junitsupport,com.oracle.svm.svm_enterprise",
                     "com.oracle.svm.common.meta            to org.graalvm.nativeimage.pointsto,org.graalvm.nativeimage.builder",
                     "com.oracle.svm.common.option          to org.graalvm.nativeimage.pointsto,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.driver",
+                    "com.oracle.svm.common",
                     "com.oracle.svm.common.phases",
                     "com.oracle.svm.common.type",
                     "com.oracle.svm.common.util",
@@ -1635,6 +1636,7 @@ suite = {
               "exports" : [
                 "com.oracle.graal.pointsto",
                 "com.oracle.graal.pointsto.api",
+                "com.oracle.graal.pointsto.classinitialization",
                 "com.oracle.graal.pointsto.heap",
                 "com.oracle.graal.pointsto.heap.value",
                 "com.oracle.graal.pointsto.reports",
@@ -1718,7 +1720,7 @@ suite = {
                 "mx:JUNIT_TOOL",
                 "sdk:GRAAL_SDK",
                 "STANDALONE_POINTSTO",
-                "SVM"
+                "SVM_TESTS", # reuse test cases defined in com.oracle.svm.test.clinit
             ],
             "testDistribution" : True,
         },
