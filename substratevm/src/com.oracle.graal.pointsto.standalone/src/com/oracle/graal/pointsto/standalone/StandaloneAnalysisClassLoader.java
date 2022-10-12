@@ -63,7 +63,7 @@ public class StandaloneAnalysisClassLoader extends URLClassLoader {
         if (clazzStream != null) {
             try {
                 byte[] classBytes = clazzStream.readAllBytes();
-                newlyDefinedClass = defineClass(clazz.getName(), classBytes, 0, classBytes.length);
+                newlyDefinedClass = defineClass(clazz.getName(), classBytes);
             } catch (IOException e) {
                 AnalysisError.shouldNotReachHere(e);
             }
@@ -82,5 +82,9 @@ public class StandaloneAnalysisClassLoader extends URLClassLoader {
                             }
                         });
         return urls.toArray(new URL[0]);
+    }
+
+    public Class<?> defineClass(String name, byte[] data) {
+        return defineClass(name, data, 0, data.length);
     }
 }

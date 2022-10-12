@@ -41,17 +41,18 @@ import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.meta.HostedProviders;
 import com.oracle.graal.pointsto.meta.PointsToAnalysisFactory;
 import com.oracle.graal.pointsto.phases.NoClassInitializationPlugin;
-import com.oracle.graal.pointsto.standalone.phases.StandaloneClassInitializationPlugin;
 import com.oracle.graal.pointsto.phases.PointsToMethodHandlePlugin;
 import com.oracle.graal.pointsto.reports.AnalysisReporter;
+import com.oracle.graal.pointsto.standalone.features.AbstractClassEntryFeature;
+import com.oracle.graal.pointsto.standalone.features.ClassInitializationAnalyzingFeature;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureImpl;
 import com.oracle.graal.pointsto.standalone.features.StandaloneAnalysisFeatureManager;
 import com.oracle.graal.pointsto.standalone.features.StandaloneServiceLoaderFeature;
-import com.oracle.graal.pointsto.standalone.features.ClassInitializationAnalyzingFeature;
 import com.oracle.graal.pointsto.standalone.features.VMInitItemsFeature;
 import com.oracle.graal.pointsto.standalone.heap.StandaloneImageHeapScanner;
 import com.oracle.graal.pointsto.standalone.meta.StandaloneConstantFieldProvider;
 import com.oracle.graal.pointsto.standalone.meta.StandaloneConstantReflectionProvider;
+import com.oracle.graal.pointsto.standalone.phases.StandaloneClassInitializationPlugin;
 import com.oracle.graal.pointsto.standalone.reflect.StandaloneReflectionFeature;
 import com.oracle.graal.pointsto.standalone.replacements.AccessControllerSubstitutionProcessor;
 import com.oracle.graal.pointsto.standalone.util.Timer;
@@ -349,6 +350,7 @@ public final class PointsToAnalyzer {
         if (StandaloneOptions.EnableClassInitializationAnalyze.getValue(options)) {
             standaloneAnalysisFeatureManager.registerFeature(ClassInitializationAnalyzingFeature.class);
         }
+        standaloneAnalysisFeatureManager.registerFeature(AbstractClassEntryFeature.class);
     }
 
     /**
