@@ -45,6 +45,9 @@ public class CommonOptions {
     @Option(help = "Directory of the image file and analysis reports to be generated", type = OptionType.User)//
     public static final OptionKey<String> Path = new OptionKey<>("./");
 
+    @Option(help = "Directory for temporary files generated during native image generation. If this option is specified, the temporary files are not deleted so that you can inspect them after native image generation")//
+    public static final OptionKey<String> TempDirectory = new OptionKey<>("");
+
     public static Path reportsPath(OptionValues options, String relativePath) {
         return Paths.get(Paths.get(CommonOptions.Path.getValue(options)).toString(), relativePath).normalize().toAbsolutePath();
     }

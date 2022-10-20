@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2022, Alibaba Group Holding Limited. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,27 +23,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.svm.hosted;
 
-import com.oracle.svm.common.CommonTemporaryDirectoryProviderImpl;
-import com.oracle.svm.core.option.HostedOptionValues;
-import com.oracle.svm.core.util.VMError;
-import org.graalvm.compiler.options.OptionValues;
+package com.oracle.svm.common;
 
-public class TemporaryBuildDirectoryProviderImpl extends CommonTemporaryDirectoryProviderImpl {
+import org.graalvm.nativeimage.Platform;
+import org.graalvm.nativeimage.Platforms;
 
-    @Override
-    public OptionValues optionValues() {
-        return HostedOptionValues.singleton();
-    }
+import java.nio.file.Path;
 
-    @Override
-    public String getTempDirPrefix() {
-        return "SVM-";
-    }
+@Platforms(Platform.HOSTED_ONLY.class)
+public interface TemporaryBuildDirectoryProvider {
 
-    @Override
-    public RuntimeException throwException(Exception cause) {
-        return VMError.shouldNotReachHere(cause);
-    }
+    Path getTemporaryBuildDirectory();
+
 }

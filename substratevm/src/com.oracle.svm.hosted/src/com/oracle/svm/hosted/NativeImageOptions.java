@@ -94,9 +94,6 @@ public class NativeImageOptions {
     @Option(help = "Print a list of active features")//
     public static final HostedOptionKey<Boolean> PrintFeatures = new HostedOptionKey<>(false);
 
-    @Option(help = "Directory for temporary files generated during native image generation. If this option is specified, the temporary files are not deleted so that you can inspect them after native image generation")//
-    public static final HostedOptionKey<String> TempDirectory = new HostedOptionKey<>("");
-
     @Option(help = "Suppress console error output for unittests")//
     public static final HostedOptionKey<Boolean> SuppressStderr = new HostedOptionKey<>(false);
 
