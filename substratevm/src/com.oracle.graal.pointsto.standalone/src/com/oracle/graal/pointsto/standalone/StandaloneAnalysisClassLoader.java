@@ -66,6 +66,10 @@ public final class StandaloneAnalysisClassLoader extends URLClassLoader {
         return new StandaloneAnalysisClassLoader(extractClassPath(classPath), extractClassPath(modulePath), parent);
     }
 
+    public StandaloneAnalysisClassLoader(URL[] urls, ClassLoader parent) {
+        super(urls, parent);
+    }
+
     private static List<String> extractClassPath(String paths) {
         return paths == null ? Collections.emptyList()
                         : Arrays.stream(paths.split(File.pathSeparator))
@@ -93,6 +97,10 @@ public final class StandaloneAnalysisClassLoader extends URLClassLoader {
             }
         }
         return newlyDefinedClass;
+    }
+
+    public static URL[] pathToUrl(List<String> paths) {
+        return pathToUrl(paths, new ArrayList<>());
     }
 
     private static URL[] pathToUrl(List<String> classPath, List<String> modulePath) {

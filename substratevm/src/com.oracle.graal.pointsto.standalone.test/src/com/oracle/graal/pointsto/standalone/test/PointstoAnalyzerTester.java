@@ -79,6 +79,12 @@ public class PointstoAnalyzerTester {
     private ClassLoader analysisClassLoader;
     private PointsToAnalyzer pointstoAnalyzer;
 
+    public PointstoAnalyzerTester() {
+        testClass = null;
+        testClassJar = null;
+        testClassName = null;
+    }
+
     public PointstoAnalyzerTester(Class<?> testClass) {
         this.testClass = testClass;
         testClassJar = testClass.getProtectionDomain().getCodeSource().getLocation().getPath();
